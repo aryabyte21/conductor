@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Layers, Server, Copy, Check, Download, ExternalLink } from "lucide-react";
 
@@ -74,12 +75,9 @@ export default function SharePage() {
           <p className="text-[#A1A1AA] mb-6">
             This link doesn&apos;t contain a valid MCP stack. It may have been corrupted or is incomplete.
           </p>
-          <a
-            href="/"
-            className="btn-primary"
-          >
+          <Link href="/" className="btn-primary">
             Go to Conductor
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -98,16 +96,16 @@ export default function SharePage() {
       {/* Nav */}
       <nav className="border-b border-[#27272A] px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2 text-[#FAFAFA] font-semibold">
+          <Link href="/" className="flex items-center gap-2 text-[#FAFAFA] font-semibold">
             <Layers className="w-5 h-5 text-[#7C3AED]" />
             Conductor
-          </a>
-          <a
+          </Link>
+          <Link
             href="/"
             className="text-sm text-[#A1A1AA] hover:text-[#FAFAFA] transition-colors"
           >
             Download App
-          </a>
+          </Link>
         </div>
       </nav>
 
@@ -204,17 +202,17 @@ export default function SharePage() {
             <h2 className="text-sm font-semibold text-[#FAFAFA] mb-2">What is this?</h2>
             <p className="text-sm text-[#A1A1AA] leading-relaxed">
               This is an MCP server stack shared via{" "}
-              <a href="/" className="text-[#7C3AED] hover:underline">Conductor</a>
+              <Link href="/" className="text-[#7C3AED] hover:underline">Conductor</Link>
               . Conductor is a free, open-source config manager that lets you define your MCP
               servers once and sync them across Claude Desktop, Cursor, VS Code, Windsurf, and
               more.
             </p>
-            <a
+            <Link
               href="/"
               className="inline-flex items-center gap-1.5 mt-3 text-sm text-[#7C3AED] hover:underline"
             >
               Learn more <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            </Link>
           </div>
         </div>
       </main>

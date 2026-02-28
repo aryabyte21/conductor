@@ -1,0 +1,28 @@
+[tools]
+node = "20"
+pnpm = "10.27.0"
+rust = "stable"
+
+[env]
+CARGO_TERM_COLOR = "always"
+
+[tasks.dev]
+description = "Start the desktop app in dev mode"
+run = "pnpm dev:desktop"
+
+[tasks.build]
+description = "Build the desktop app"
+run = "pnpm build:desktop"
+
+[tasks.check]
+description = "Run type checks across the monorepo"
+run = "pnpm type-check"
+
+[tasks.lint]
+description = "Run linters across the monorepo"
+run = "pnpm lint"
+
+[tasks."cargo-check"]
+description = "Run cargo check on the Rust backend"
+run = "cargo check"
+dir = "apps/desktop/src-tauri"

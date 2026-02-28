@@ -11,6 +11,7 @@ import { Toaster } from "sonner";
 import { useUIStore } from "@/stores/uiStore";
 import { useConfigStore } from "@/stores/configStore";
 import { useClientStore } from "@/stores/clientStore";
+import { useAutoSync } from "@/hooks/useAutoSync";
 
 export function App() {
   const activeView = useUIStore((s) => s.activeView);
@@ -18,11 +19,18 @@ export function App() {
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
   const fetchServers = useConfigStore((s) => s.fetchServers);
   const detectClients = useClientStore((s) => s.detectClients);
+  const { triggerAutoSync } = useAutoSync();
 
   useEffect(() => {
     fetchServers();
     detectClients();
   }, [fetchServers, detectClients]);
+
+  // Expose triggerAutoSync globally so stores can call it
+  useEffect(() => {
+    window.__conductorAutoSync = triggerAutoSync;
+    return () => { delete window.__conductorAutoSync; };
+  }, [triggerAutoSync]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

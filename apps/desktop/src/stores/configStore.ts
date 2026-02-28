@@ -46,6 +46,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       toast.success("Server added", {
         description: `${server.displayName || server.name} has been added.`,
       });
+      window.__conductorAutoSync?.();
       return server;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -61,6 +62,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         servers: state.servers.map((s) => (s.id === serverId ? updated : s)),
       }));
       toast.success("Server updated");
+      window.__conductorAutoSync?.();
       return updated;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -79,6 +81,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       toast.success("Server deleted", {
         description: `${server?.displayName || server?.name || "Server"} has been removed.`,
       });
+      window.__conductorAutoSync?.();
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -100,6 +103,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       set((state) => ({
         servers: state.servers.map((s) => (s.id === serverId ? updated : s)),
       }));
+      window.__conductorAutoSync?.();
     } catch (err) {
       // Roll back
       set({ servers: prev });

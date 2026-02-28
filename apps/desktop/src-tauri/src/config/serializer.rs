@@ -75,7 +75,11 @@ fn serialize_vscode(servers: &[McpServerConfig], existing_content: Option<&str>)
 
     // Merge: keep client-specific servers, add/overwrite Conductor servers
     let mut merged = serde_json::Map::new();
-    if let Some(existing) = root.get("mcp").and_then(|m| m.get("servers")).and_then(|v| v.as_object()) {
+    if let Some(existing) = root
+        .get("mcp")
+        .and_then(|m| m.get("servers"))
+        .and_then(|v| v.as_object())
+    {
         for (name, value) in existing {
             if !conductor_names.contains(name.as_str()) {
                 merged.insert(name.clone(), value.clone());
@@ -92,7 +96,10 @@ fn serialize_vscode(servers: &[McpServerConfig], existing_content: Option<&str>)
 }
 
 /// VS Code mcp.json format: top-level "servers" key.
-fn serialize_vscode_mcp(servers: &[McpServerConfig], existing_content: Option<&str>) -> Result<String> {
+fn serialize_vscode_mcp(
+    servers: &[McpServerConfig],
+    existing_content: Option<&str>,
+) -> Result<String> {
     let mut root: serde_json::Value = if let Some(content) = existing_content {
         serde_json::from_str(content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
@@ -183,7 +190,11 @@ fn serialize_jetbrains(servers: &[McpServerConfig]) -> Result<String> {
 
     // Write XML declaration
     writer
-        .write_event(Event::Decl(quick_xml::events::BytesDecl::new("1.0", Some("UTF-8"), None)))
+        .write_event(Event::Decl(quick_xml::events::BytesDecl::new(
+            "1.0",
+            Some("UTF-8"),
+            None,
+        )))
         .context("Failed to write XML declaration")?;
 
     // Root element
@@ -316,7 +327,9 @@ fn serialize_codex(servers: &[McpServerConfig], existing_content: Option<&str>) 
 }
 
 /// Convert a slice of server configs into a JSON object for standard formats.
-fn servers_to_json_object(servers: &[McpServerConfig]) -> serde_json::Map<String, serde_json::Value> {
+fn servers_to_json_object(
+    servers: &[McpServerConfig],
+) -> serde_json::Map<String, serde_json::Value> {
     let mut map = serde_json::Map::new();
 
     for server in servers {

@@ -90,7 +90,11 @@ impl ClientAdapter for AntigravityAdapter {
         let path = Self::get_config_path()
             .ok_or_else(|| anyhow::anyhow!("Cannot determine config path for Antigravity"))?;
 
-        let format = if Self::is_mcp_json(&path) { "vscode-mcp" } else { "vscode" };
+        let format = if Self::is_mcp_json(&path) {
+            "vscode-mcp"
+        } else {
+            "vscode"
+        };
 
         let current_content = match existing_content {
             Some(c) => Some(c.to_string()),

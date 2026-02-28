@@ -483,13 +483,27 @@ function ExportedStackCard({
   };
 
   const handleShareLink = async () => {
-    const encoded = btoa(unescape(encodeURIComponent(json)));
-    const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    const base = isDev
-      ? "http://localhost:3000"
-      : "https://conductormcp.dev";
-    const url = `${base}/share#${encoded}`;
-    await navigator.clipboard.writeText(url);
+    // Strip fields that aren't needed for sharing to minimize URL size
+    const minimalStack = {
+      ...stack,
+      servers: stack.servers.map(({ name, displayName, transport, command, args, url, env, description }) => ({
+        name, displayName, transport, command, args, url, env,
+        ...(description ? { description } : {}),
+      })),
+    };
+    const minJson = JSON.stringify(minimalStack);
+    const bytes = new TextEncoder().encode(minJson);
+    const binStr = Array.from(bytes, (b) => String.fromCodePoint(b)).join("");
+    const encoded = btoa(binStr);
+
+    const shareUrl = `https://conductormcp.dev/share#${encoded}`;
+    if (shareUrl.length > 32000) {
+      toast.warning("Stack too large for share link", {
+        description: "Use \"Copy JSON\" to share this stack instead.",
+      });
+      return;
+    }
+    await navigator.clipboard.writeText(shareUrl);
     toast.success("Share link copied to clipboard");
   };
 

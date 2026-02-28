@@ -1,19 +1,25 @@
 use crate::clients;
-use crate::config::{self, McpServerConfig, SyncResult};
+use crate::config::{self, backup, McpServerConfig, SyncResult};
+use std::collections::HashSet;
+use std::path::Path;
 
 #[tauri::command]
 pub async fn sync_to_client(
     client_id: String,
     server_ids: Option<Vec<String>>,
 ) -> Result<SyncResult, String> {
-    let adapter = clients::get_adapter(&client_id)
-        .ok_or_else(|| format!("Unknown client: {}", client_id))?;
+    let adapter =
+        clients::get_adapter(&client_id).ok_or_else(|| format!("Unknown client: {}", client_id))?;
 
     let cfg = config::read_config().map_err(|e| e.to_string())?;
 
     // If no server_ids provided, sync all enabled servers
     let ids_to_sync = server_ids.unwrap_or_else(|| {
-        cfg.servers.iter().filter(|s| s.enabled).map(|s| s.id.clone()).collect()
+        cfg.servers
+            .iter()
+            .filter(|s| s.enabled)
+            .map(|s| s.id.clone())
+            .collect()
     });
 
     let servers_to_sync: Vec<McpServerConfig> = cfg
@@ -32,19 +38,45 @@ pub async fn sync_to_client(
         });
     }
 
-    // Inject secrets from keychain into env vars
-    let enriched_servers: Vec<McpServerConfig> = servers_to_sync
-        .into_iter()
-        .map(|mut server| {
-            inject_secrets(&mut server);
-            server
-        })
-        .collect();
+    // Inject secrets from keychain and OAuth access token into env vars.
+    let mut enriched_servers: Vec<McpServerConfig> = Vec::with_capacity(servers_to_sync.len());
+    for mut server in servers_to_sync {
+        inject_secrets(&mut server)
+            .await
+            .map_err(|e| e.to_string())?;
+        enriched_servers.push(server);
+    }
 
     let count = enriched_servers.len();
+    let config_path = adapter.config_path();
+    let existing_content = config_path
+        .as_ref()
+        .and_then(|path| read_existing_content(path).ok().flatten());
 
-    match adapter.write_servers(&enriched_servers, None) {
+    match adapter.write_servers(&enriched_servers, existing_content.as_deref()) {
         Ok(()) => {
+            if let Err(verify_err) = verify_written_servers(&*adapter, &enriched_servers) {
+                let rollback_err =
+                    rollback_client_config(config_path.as_ref(), existing_content.as_deref());
+                let error = match rollback_err {
+                    Some(rb_err) => format!(
+                        "Sync verification failed: {}. Rollback also failed: {}",
+                        verify_err, rb_err
+                    ),
+                    None => format!(
+                        "Sync verification failed: {}. Rolled back client config.",
+                        verify_err
+                    ),
+                };
+
+                return Ok(SyncResult {
+                    client_id,
+                    success: false,
+                    servers_written: 0,
+                    error: Some(error),
+                });
+            }
+
             // Log activity
             config::log_activity(
                 "sync",
@@ -79,12 +111,21 @@ pub async fn sync_to_client(
                 error: None,
             })
         }
-        Err(e) => Ok(SyncResult {
-            client_id,
-            success: false,
-            servers_written: 0,
-            error: Some(e.to_string()),
-        }),
+        Err(e) => {
+            let rollback_err =
+                rollback_client_config(config_path.as_ref(), existing_content.as_deref());
+            let error = match rollback_err {
+                Some(rb_err) => format!("{} (rollback failed: {})", e, rb_err),
+                None => e.to_string(),
+            };
+
+            Ok(SyncResult {
+                client_id,
+                success: false,
+                servers_written: 0,
+                error: Some(error),
+            })
+        }
     }
 }
 
@@ -107,7 +148,8 @@ pub async fn sync_to_all_clients() -> Result<Vec<SyncResult>, String> {
             continue;
         }
 
-        let result = sync_to_client(adapter.id().to_string(), Some(enabled_server_ids.clone())).await;
+        let result =
+            sync_to_client(adapter.id().to_string(), Some(enabled_server_ids.clone())).await;
         match result {
             Ok(r) => results.push(r),
             Err(e) => results.push(SyncResult {
@@ -122,7 +164,7 @@ pub async fn sync_to_all_clients() -> Result<Vec<SyncResult>, String> {
     Ok(results)
 }
 
-fn inject_secrets(server: &mut McpServerConfig) {
+async fn inject_secrets(server: &mut McpServerConfig) -> anyhow::Result<()> {
     // Inject secret env vars from keychain
     for key in &server.secret_env_keys {
         let username = format!("{}:{}", server.id, key);
@@ -133,17 +175,60 @@ fn inject_secrets(server: &mut McpServerConfig) {
         }
     }
 
-    // Also inject OAuth token if one exists for this server.
-    // Many MCP servers expect an OAUTH_TOKEN env var for authentication.
-    // This ensures users don't need to re-authenticate in each client.
-    let token_key = format!("{}:oauth_token", server.id);
-    if let Ok(entry) = keyring::Entry::new("conductor", &token_key) {
-        if let Ok(token) = entry.get_password() {
-            // Only inject if the server doesn't already have it as a secret_env_key
-            // (to avoid overwriting user-specified keys)
-            if !server.secret_env_keys.iter().any(|k| k == "OAUTH_TOKEN") {
-                server.env.insert("OAUTH_TOKEN".to_string(), token);
-            }
+    // Inject OAuth token if one exists and the server hasn't set OAUTH_TOKEN itself.
+    // This avoids silently overwriting user-provided env values.
+    if !server.env.contains_key("OAUTH_TOKEN") {
+        if let Some(token) = crate::oauth::get_valid_oauth_token(&server.id).await? {
+            server.env.insert("OAUTH_TOKEN".to_string(), token);
         }
     }
+
+    Ok(())
+}
+
+fn verify_written_servers(
+    adapter: &dyn crate::clients::ClientAdapter,
+    expected_servers: &[McpServerConfig],
+) -> anyhow::Result<()> {
+    let actual_servers = adapter.read_servers()?;
+    let actual_names: HashSet<&str> = actual_servers.iter().map(|s| s.name.as_str()).collect();
+
+    for server in expected_servers {
+        if !actual_names.contains(server.name.as_str()) {
+            anyhow::bail!(
+                "Client config verification failed for '{}': missing server '{}'",
+                adapter.id(),
+                server.name
+            );
+        }
+    }
+
+    Ok(())
+}
+
+fn read_existing_content(path: &Path) -> anyhow::Result<Option<String>> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let content = std::fs::read_to_string(path)?;
+    Ok(Some(content))
+}
+
+fn rollback_client_config(
+    path: Option<&std::path::PathBuf>,
+    previous_content: Option<&str>,
+) -> Option<String> {
+    let Some(path) = path else {
+        return None;
+    };
+
+    let result = if let Some(content) = previous_content {
+        backup::atomic_write(path, content)
+    } else if path.exists() {
+        std::fs::remove_file(path).map_err(anyhow::Error::from)
+    } else {
+        Ok(())
+    };
+
+    result.err().map(|e| e.to_string())
 }

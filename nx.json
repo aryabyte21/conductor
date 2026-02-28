@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "sharedGlobals": ["{workspaceRoot}/tsconfig.base.json"],
+    "rust": [
+      "{projectRoot}/src-tauri/src/**/*.rs",
+      "{projectRoot}/src-tauri/Cargo.toml"
+    ]
+  },
+  "targetDefaults": {
+    "type-check": {
+      "dependsOn": ["^type-check"],
+      "cache": true,
+      "inputs": ["default"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "cache": true
+    },
+    "lint": {
+      "cache": true,
+      "inputs": ["default"]
+    },
+    "dev": {
+      "cache": false
+    }
+  },
+  "defaultBase": "main"
+}

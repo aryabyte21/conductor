@@ -11,7 +11,10 @@ impl JetBrainsAdapter {
     /// We search for common JetBrains IDEs on macOS.
     fn get_config_path() -> Option<PathBuf> {
         let home = dirs::home_dir()?;
-        let app_support = home.join("Library").join("Application Support").join("JetBrains");
+        let app_support = home
+            .join("Library")
+            .join("Application Support")
+            .join("JetBrains");
 
         if !app_support.exists() {
             return None;

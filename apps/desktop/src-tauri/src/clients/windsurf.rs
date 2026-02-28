@@ -82,8 +82,11 @@ impl ClientAdapter for WindsurfAdapter {
             }
         };
 
-        let output =
-            serializer::serialize_to_client_format("windsurf", servers, current_content.as_deref())?;
+        let output = serializer::serialize_to_client_format(
+            "windsurf",
+            servers,
+            current_content.as_deref(),
+        )?;
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
