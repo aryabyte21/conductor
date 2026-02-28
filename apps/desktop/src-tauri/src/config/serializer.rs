@@ -314,6 +314,20 @@ fn serialize_codex(servers: &[McpServerConfig], existing_content: Option<&str>) 
         if let Some(ref url) = server.url {
             table.insert("url", toml_edit::value(url));
         }
+
+        // Codex streamable HTTP auth must be expressed as HTTP headers.
+        // For OAuth-backed servers synced by Conductor, promote OAUTH_TOKEN to
+        // Authorization header so URL servers like Linear actually authenticate.
+        if server.url.is_some() {
+            if let Some(token) = server.env.get("OAUTH_TOKEN") {
+                if !token.trim().is_empty() {
+                    let mut headers = toml_edit::InlineTable::new();
+                    headers.insert("Authorization", format!("Bearer {}", token).as_str().into());
+                    table.insert("http_headers", toml_edit::value(headers));
+                }
+            }
+        }
+
         if !server.enabled {
             table.insert("enabled", toml_edit::value(false));
         }
