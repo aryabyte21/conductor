@@ -50,14 +50,16 @@ pub struct RegistryServer {
 impl From<RawRegistryServer> for RegistryServer {
     fn from(raw: RawRegistryServer) -> Self {
         let qn = raw.qualified_name.unwrap_or_default();
-        let dn = raw.display_name.unwrap_or_else(|| {
-            qn.split('/').last().unwrap_or(&qn).to_string()
-        });
+        let dn = raw
+            .display_name
+            .unwrap_or_else(|| qn.split('/').last().unwrap_or(&qn).to_string());
         RegistryServer {
             id: qn.clone(),
             qualified_name: qn,
             display_name: dn,
-            description: raw.description.unwrap_or_else(|| "No description".to_string()),
+            description: raw
+                .description
+                .unwrap_or_else(|| "No description".to_string()),
             icon_url: raw.icon_url,
             homepage: raw.homepage,
             verified: raw.verified.unwrap_or(false),
@@ -101,10 +103,7 @@ pub async fn get_popular_servers() -> Result<Vec<RegistryServer>, String> {
         .map_err(|e| format!("Failed to query registry: {}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!(
-            "Registry returned status {}",
-            response.status()
-        ));
+        return Err(format!("Registry returned status {}", response.status()));
     }
 
     let body = response.text().await.map_err(|e| e.to_string())?;
@@ -140,23 +139,21 @@ pub async fn search_registry(query: String) -> Result<Vec<RegistryServer>, Strin
         .map_err(|e| format!("Failed to query registry: {}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!(
-            "Registry returned status {}",
-            response.status()
-        ));
+        return Err(format!("Registry returned status {}", response.status()));
     }
 
     let body = response.text().await.map_err(|e| e.to_string())?;
 
     // Try parsing as the expected { servers: [...] } wrapper
-    let raw_servers: Vec<RawRegistryServer> = match serde_json::from_str::<RegistrySearchResponse>(&body) {
-        Ok(resp) => resp.servers,
-        Err(_) => {
-            // Try parsing as a direct array
-            serde_json::from_str(&body)
-                .map_err(|e| format!("Failed to parse registry response: {}", e))?
-        }
-    };
+    let raw_servers: Vec<RawRegistryServer> =
+        match serde_json::from_str::<RegistrySearchResponse>(&body) {
+            Ok(resp) => resp.servers,
+            Err(_) => {
+                // Try parsing as a direct array
+                serde_json::from_str(&body)
+                    .map_err(|e| format!("Failed to parse registry response: {}", e))?
+            }
+        };
 
     Ok(raw_servers.into_iter().map(RegistryServer::from).collect())
 }
@@ -206,61 +203,69 @@ pub async fn install_from_registry(registry_id: String) -> Result<McpServerConfi
     };
 
     // Determine transport and connection details
-    let (transport, command, args, server_url) =
-        if let Some(conn) = server_info.connections.first() {
-            match conn.connection_type.as_deref() {
-                Some("stdio") => {
-                    let pkg_name = &server_info.qualified_name;
-                    let pkg = if pkg_name.is_empty() { &registry_id } else { pkg_name };
-                    (
-                        TransportType::Stdio,
-                        Some("npx".to_string()),
-                        vec![
-                            "-y".to_string(),
-                            "@smithery/cli@latest".to_string(),
-                            "run".to_string(),
-                            pkg.to_string(),
-                        ],
-                        None,
-                    )
-                }
-                Some("sse") | Some("streamable-http") => {
-                    let t = if conn.connection_type.as_deref() == Some("streamable-http") {
-                        TransportType::StreamableHttp
-                    } else {
-                        TransportType::Sse
-                    };
-                    (t, None, Vec::new(), conn.url.clone())
-                }
-                _ => {
-                    let pkg_name = &server_info.qualified_name;
-                    let pkg = if pkg_name.is_empty() { &registry_id } else { pkg_name };
-                    (
-                        TransportType::Stdio,
-                        Some("npx".to_string()),
-                        vec![
-                            "-y".to_string(),
-                            "@smithery/cli@latest".to_string(),
-                            "run".to_string(),
-                            pkg.to_string(),
-                        ],
-                        None,
-                    )
-                }
+    let (transport, command, args, server_url) = if let Some(conn) = server_info.connections.first()
+    {
+        match conn.connection_type.as_deref() {
+            Some("stdio") => {
+                let pkg_name = &server_info.qualified_name;
+                let pkg = if pkg_name.is_empty() {
+                    &registry_id
+                } else {
+                    pkg_name
+                };
+                (
+                    TransportType::Stdio,
+                    Some("npx".to_string()),
+                    vec![
+                        "-y".to_string(),
+                        "@smithery/cli@latest".to_string(),
+                        "run".to_string(),
+                        pkg.to_string(),
+                    ],
+                    None,
+                )
             }
-        } else {
-            (
-                TransportType::Stdio,
-                Some("npx".to_string()),
-                vec![
-                    "-y".to_string(),
-                    "@smithery/cli@latest".to_string(),
-                    "run".to_string(),
-                    registry_id.clone(),
-                ],
-                None,
-            )
-        };
+            Some("sse") | Some("streamable-http") => {
+                let t = if conn.connection_type.as_deref() == Some("streamable-http") {
+                    TransportType::StreamableHttp
+                } else {
+                    TransportType::Sse
+                };
+                (t, None, Vec::new(), conn.url.clone())
+            }
+            _ => {
+                let pkg_name = &server_info.qualified_name;
+                let pkg = if pkg_name.is_empty() {
+                    &registry_id
+                } else {
+                    pkg_name
+                };
+                (
+                    TransportType::Stdio,
+                    Some("npx".to_string()),
+                    vec![
+                        "-y".to_string(),
+                        "@smithery/cli@latest".to_string(),
+                        "run".to_string(),
+                        pkg.to_string(),
+                    ],
+                    None,
+                )
+            }
+        }
+    } else {
+        (
+            TransportType::Stdio,
+            Some("npx".to_string()),
+            vec![
+                "-y".to_string(),
+                "@smithery/cli@latest".to_string(),
+                "run".to_string(),
+                registry_id.clone(),
+            ],
+            None,
+        )
+    };
 
     // Check for name collision
     let mut cfg = config::read_config().map_err(|e| e.to_string())?;

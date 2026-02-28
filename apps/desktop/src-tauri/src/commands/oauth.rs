@@ -33,10 +33,10 @@ pub async fn start_oauth_flow(
 /// Check the authentication status for a server.
 #[tauri::command]
 pub async fn check_auth_status(server_id: String) -> Result<OAuthStatus, String> {
-    let username = format!("{}:oauth_token", server_id);
-    let entry = keyring::Entry::new("conductor", &username).map_err(|e| e.to_string())?;
-
-    let authenticated = entry.get_password().is_ok();
+    let authenticated = crate::oauth::get_valid_oauth_token(&server_id)
+        .await
+        .map(|token| token.is_some())
+        .unwrap_or(false);
 
     let provider = if authenticated {
         let provider_key = format!("{}:oauth_provider", server_id);

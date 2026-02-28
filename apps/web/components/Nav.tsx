@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Menu, X, Github, Download } from "lucide-react";
 
@@ -16,7 +17,7 @@ export function Nav() {
     <nav className="fixed top-0 z-50 w-full border-b border-[#27272A]/50 glass">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <svg
             width="28"
             height="28"
@@ -50,7 +51,7 @@ export function Nav() {
           <span className="text-lg font-semibold text-[#FAFAFA] tracking-[-0.01em]">
             Conductor
           </span>
-        </a>
+        </Link>
 
         {/* Center links (desktop) */}
         <div className="hidden items-center gap-8 md:flex">

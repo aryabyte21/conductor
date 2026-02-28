@@ -1,0 +1,79 @@
+import { useEffect, useRef } from "react";
+import { listen } from "@tauri-apps/api/event";
+import * as tauri from "@/lib/tauri";
+import { useClientStore } from "@/stores/clientStore";
+import { toast } from "sonner";
+import type { AppSettings } from "@conductor/types";
+
+/**
+ * Listens for "client-config-changed" events from the file watcher
+ * and triggers auto-sync when enabled in settings.
+ *
+ * Also provides `triggerAutoSync()` for use after config mutations.
+ */
+export function useAutoSync() {
+  const settingsRef = useRef<AppSettings | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const syncToAllClients = useClientStore((s) => s.syncToAllClients);
+  const detectClients = useClientStore((s) => s.detectClients);
+
+  // Load settings on mount and refresh periodically
+  useEffect(() => {
+    const loadSettings = () => {
+      tauri.getSettings().then((s) => {
+        settingsRef.current = s;
+      }).catch(() => {});
+    };
+
+    loadSettings();
+    const interval = setInterval(loadSettings, 10_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Listen for file watcher events from the Rust backend
+  useEffect(() => {
+    const unlisten = listen<string[]>("client-config-changed", (event) => {
+      const settings = settingsRef.current;
+      if (!settings) return;
+
+      // Notify about external config changes
+      if (settings.notifyExternal) {
+        const paths = event.payload;
+        const fileNames = paths.map((p) => p.split("/").pop() || p);
+        toast.info("External config change detected", {
+          description: fileNames.join(", "),
+        });
+      }
+
+      // Refresh client detection to pick up external changes
+      detectClients();
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [detectClients]);
+
+  // Return a function that configStore can call after mutations
+  return {
+    triggerAutoSync: () => {
+      const settings = settingsRef.current;
+      if (!settings?.autoSync) return;
+
+      // Clear any pending sync timer
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+      }
+
+      const delay = (settings.syncDelay ?? 5) * 1000;
+
+      if (delay === 0) {
+        syncToAllClients();
+      } else {
+        syncTimerRef.current = setTimeout(() => {
+          syncToAllClients();
+        }, delay);
+      }
+    },
+  };
+}

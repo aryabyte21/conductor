@@ -36,8 +36,11 @@ pub trait ClientAdapter: Send + Sync {
 
     /// Write MCP server configurations to this client's config,
     /// optionally merging with existing content.
-    fn write_servers(&self, servers: &[McpServerConfig], existing_content: Option<&str>)
-        -> Result<()>;
+    fn write_servers(
+        &self,
+        servers: &[McpServerConfig],
+        existing_content: Option<&str>,
+    ) -> Result<()>;
 }
 
 /// Information about a detected client.

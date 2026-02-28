@@ -2,6 +2,7 @@ pub mod clients;
 pub mod commands;
 pub mod config;
 pub mod errors;
+pub mod file_guard;
 pub mod oauth;
 pub mod watcher;
 
@@ -70,27 +71,35 @@ pub fn run() {
             // Setup system tray
             let tray = app.tray_by_id("main");
             if let Some(tray) = tray {
-                let show_item =
-                    tauri::menu::MenuItem::with_id(app, "show", "Show Conductor", true, None::<&str>)?;
-                let quit_item =
-                    tauri::menu::MenuItem::with_id(app, "quit", "Quit Conductor", true, None::<&str>)?;
+                let show_item = tauri::menu::MenuItem::with_id(
+                    app,
+                    "show",
+                    "Show Conductor",
+                    true,
+                    None::<&str>,
+                )?;
+                let quit_item = tauri::menu::MenuItem::with_id(
+                    app,
+                    "quit",
+                    "Quit Conductor",
+                    true,
+                    None::<&str>,
+                )?;
                 let menu = tauri::menu::Menu::with_items(app, &[&show_item, &quit_item])?;
                 tray.set_menu(Some(menu))?;
 
                 let app_handle = app.handle().clone();
-                tray.on_menu_event(move |_tray, event| {
-                    match event.id().as_ref() {
-                        "show" => {
-                            if let Some(window) = app_handle.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
+                tray.on_menu_event(move |_tray, event| match event.id().as_ref() {
+                    "show" => {
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
                         }
-                        "quit" => {
-                            std::process::exit(0);
-                        }
-                        _ => {}
                     }
+                    "quit" => {
+                        std::process::exit(0);
+                    }
+                    _ => {}
                 });
             }
 

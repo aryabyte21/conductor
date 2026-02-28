@@ -5,6 +5,8 @@ pub mod serializer;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+const ACTIVITY_RETENTION_DAYS: i64 = 30;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum TransportType {
@@ -93,9 +95,15 @@ pub struct AppSettings {
     pub error_notifications: bool,
 }
 
-fn default_true() -> bool { true }
-fn default_sync_delay() -> u32 { 5 }
-fn default_backup_retention() -> u32 { 30 }
+fn default_true() -> bool {
+    true
+}
+fn default_sync_delay() -> u32 {
+    5
+}
+fn default_backup_retention() -> u32 {
+    30
+}
 
 impl Default for AppSettings {
     fn default() -> Self {
@@ -167,7 +175,8 @@ pub struct ImportResult {
 
 /// Returns the path to the Conductor master config file.
 pub fn master_config_path() -> anyhow::Result<std::path::PathBuf> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Cannot determine home directory"))?;
+    let home =
+        dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Cannot determine home directory"))?;
     let config_dir = home.join(".conductor");
     if !config_dir.exists() {
         std::fs::create_dir_all(&config_dir)?;
@@ -213,6 +222,7 @@ pub fn log_activity(
             server_id,
         };
         cfg.activity.push(entry);
+        prune_activity_entries(&mut cfg.activity);
         // Cap at 200 entries, remove oldest first
         if cfg.activity.len() > 200 {
             let drain = cfg.activity.len() - 200;
@@ -220,4 +230,15 @@ pub fn log_activity(
         }
         let _ = write_config(&cfg);
     }
+}
+
+pub fn prune_activity_entries(entries: &mut Vec<ActivityEntry>) -> usize {
+    let cutoff = chrono::Utc::now() - chrono::Duration::days(ACTIVITY_RETENTION_DAYS);
+    let before = entries.len();
+    entries.retain(|entry| {
+        chrono::DateTime::parse_from_rfc3339(&entry.timestamp)
+            .map(|ts| ts.with_timezone(&chrono::Utc) >= cutoff)
+            .unwrap_or(true)
+    });
+    before.saturating_sub(entries.len())
 }

@@ -194,10 +194,7 @@ fn parse_jetbrains_config(raw: &str) -> Result<Vec<McpServerConfig>> {
             || node.tag_name().name() == "server"
             || node.tag_name().name() == "mcpServer"
         {
-            let name = node
-                .attribute("name")
-                .unwrap_or("unnamed")
-                .to_string();
+            let name = node.attribute("name").unwrap_or("unnamed").to_string();
             let command = node.attribute("command").map(|s| s.to_string());
             let args_str = node.attribute("args").unwrap_or("");
             let args: Vec<String> = if args_str.is_empty() {
@@ -266,7 +263,9 @@ fn parse_codex_config(raw: &str) -> Result<Vec<McpServerConfig>> {
     if let Some(mcp_item) = value.get("mcp_servers") {
         if let Some(mcp_table) = mcp_item.as_table() {
             // Check if this is a table of subtables (named format) vs other
-            let has_subtables = mcp_table.iter().any(|(_, v)| v.is_table() || v.is_inline_table());
+            let has_subtables = mcp_table
+                .iter()
+                .any(|(_, v)| v.is_table() || v.is_inline_table());
             if has_subtables {
                 for (name, server_item) in mcp_table.iter() {
                     if let Some(table) = server_item.as_table() {

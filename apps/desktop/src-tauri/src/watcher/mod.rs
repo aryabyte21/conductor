@@ -10,16 +10,19 @@ use tokio::time::{Duration, Instant};
 
 /// Start watching all detected client config files for changes.
 /// Emits "client-config-changed" Tauri events with 500ms debounce.
+/// Only emits for actual MCP config files, not other files in the same directory.
 pub async fn start_watching(app_handle: tauri::AppHandle) -> Result<()> {
     let adapters = get_all_adapters();
 
-    // Collect parent directories of all config files that exist
+    // Collect actual config file paths and their parent directories
     let mut watch_dirs: HashSet<PathBuf> = HashSet::new();
+    let mut config_files: HashSet<PathBuf> = HashSet::new();
     for adapter in &adapters {
         if let Some(config_path) = adapter.config_path() {
             if let Some(parent) = config_path.parent() {
                 if parent.exists() {
                     watch_dirs.insert(parent.to_path_buf());
+                    config_files.insert(config_path);
                 }
             }
         }
@@ -62,6 +65,19 @@ pub async fn start_watching(app_handle: tauri::AppHandle) -> Result<()> {
         while let Some(event) = rx.recv().await {
             match event.kind {
                 EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_) => {
+                    // Filter to only actual MCP config files
+                    let changed_paths: Vec<String> = event
+                        .paths
+                        .iter()
+                        .filter(|p| config_files.contains(p.as_path()))
+                        .filter(|p| !crate::file_guard::is_internal_write(p.as_path()))
+                        .map(|p| p.to_string_lossy().to_string())
+                        .collect();
+
+                    if changed_paths.is_empty() {
+                        continue;
+                    }
+
                     let mut last = last_event_clone.lock().await;
                     let now = Instant::now();
 
@@ -74,13 +90,6 @@ pub async fn start_watching(app_handle: tauri::AppHandle) -> Result<()> {
                     if should_emit {
                         *last = Some(now);
                         drop(last); // Release lock before emitting
-
-                        // Determine which client config changed
-                        let changed_paths: Vec<String> = event
-                            .paths
-                            .iter()
-                            .map(|p| p.to_string_lossy().to_string())
-                            .collect();
 
                         let _ = app_handle_clone.emit("client-config-changed", &changed_paths);
                     }

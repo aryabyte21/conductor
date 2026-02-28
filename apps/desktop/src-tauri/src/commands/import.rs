@@ -3,11 +3,14 @@ use crate::config::{self, ImportResult};
 
 #[tauri::command]
 pub async fn import_from_client(client_id: String) -> Result<ImportResult, String> {
-    let adapter = clients::get_adapter(&client_id)
-        .ok_or_else(|| format!("Unknown client: {}", client_id))?;
+    let adapter =
+        clients::get_adapter(&client_id).ok_or_else(|| format!("Unknown client: {}", client_id))?;
 
     if !adapter.detect() {
-        return Err(format!("Client '{}' is not installed or not detected", client_id));
+        return Err(format!(
+            "Client '{}' is not installed or not detected",
+            client_id
+        ));
     }
 
     let client_servers = adapter.read_servers().map_err(|e| e.to_string())?;
@@ -18,9 +21,10 @@ pub async fn import_from_client(client_id: String) -> Result<ImportResult, Strin
     let mut skipped_count = 0usize;
 
     for server in client_servers {
-        let is_duplicate = cfg.servers.iter().any(|existing| {
-            existing.name == server.name && existing.command == server.command
-        });
+        let is_duplicate = cfg
+            .servers
+            .iter()
+            .any(|existing| existing.name == server.name && existing.command == server.command);
 
         if is_duplicate {
             skipped_count += 1;

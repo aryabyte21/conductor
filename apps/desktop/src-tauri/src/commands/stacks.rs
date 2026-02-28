@@ -1,5 +1,6 @@
 use crate::config::{self, McpServerConfig};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,13 +29,29 @@ pub async fn export_stack(
         .filter(|s| server_ids.contains(&s.id))
         .cloned()
         .map(|mut s| {
-            // Strip secrets and sensitive env vars before export
-            for key in &s.secret_env_keys {
-                s.env.remove(key);
+            // Strip secrets and sensitive env vars before export.
+            // This is defensive: if users forgot to mark a key as secret,
+            // we still redact obvious credential-like values.
+            let mut secret_keys: HashSet<String> = s.secret_env_keys.iter().cloned().collect();
+            let env_keys: Vec<String> = s.env.keys().cloned().collect();
+            for key in env_keys {
+                let redact = secret_keys.contains(&key)
+                    || looks_sensitive_env_key(&key)
+                    || s.env
+                        .get(&key)
+                        .map(|v| looks_sensitive_env_value(v))
+                        .unwrap_or(false);
+                if redact {
+                    s.env.remove(&key);
+                    secret_keys.insert(key);
+                }
             }
+            s.secret_env_keys = secret_keys.into_iter().collect();
+            s.secret_env_keys.sort();
             // Generate fresh IDs for exported servers
             s.id = uuid::Uuid::new_v4().to_string();
             s.source = Some("stack".to_string());
+            s.registry_id = None;
             s
         })
         .collect();
@@ -120,7 +137,10 @@ pub async fn delete_saved_stack(stack_id: String) -> Result<(), String> {
 /// Fetch a stack from a URL and return it.
 #[tauri::command]
 pub async fn get_stack_from_url(url: String) -> Result<McpStack, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| e.to_string())?;
     let response = client
         .get(&url)
         .header("Accept", "application/json")
@@ -137,4 +157,43 @@ pub async fn get_stack_from_url(url: String) -> Result<McpStack, String> {
         serde_json::from_str(&body).map_err(|e| format!("Invalid stack JSON: {}", e))?;
 
     Ok(stack)
+}
+
+fn looks_sensitive_env_key(key: &str) -> bool {
+    let upper = key.to_ascii_uppercase();
+    let sensitive_markers = [
+        "SECRET",
+        "TOKEN",
+        "PASSWORD",
+        "PRIVATE",
+        "API_KEY",
+        "ACCESS_KEY",
+        "AUTH",
+        "CREDENTIAL",
+    ];
+    sensitive_markers
+        .iter()
+        .any(|marker| upper.contains(marker))
+}
+
+fn looks_sensitive_env_value(value: &str) -> bool {
+    let trimmed = value.trim();
+    if trimmed.is_empty() || trimmed.len() < 20 {
+        return false;
+    }
+
+    let looks_structured_secret = trimmed.starts_with("sk-")
+        || trimmed.starts_with("ghp_")
+        || trimmed.starts_with("github_pat_")
+        || trimmed.starts_with("xox")
+        || trimmed.starts_with("AIza")
+        || trimmed.starts_with("ya29.")
+        || trimmed.starts_with("Bearer ");
+
+    let no_spaces = !trimmed.contains(char::is_whitespace);
+    let high_entropy_hint = trimmed.chars().any(|c| c.is_ascii_digit())
+        && trimmed.chars().any(|c| c.is_ascii_uppercase())
+        && trimmed.chars().any(|c| c.is_ascii_lowercase());
+
+    looks_structured_secret || (no_spaces && high_entropy_hint)
 }

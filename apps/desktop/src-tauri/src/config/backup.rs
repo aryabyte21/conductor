@@ -7,9 +7,11 @@ use std::path::Path;
 /// 2. If the target file exists, creates a timestamped .bak backup.
 /// 3. Renames the temporary file to the target path.
 pub fn atomic_write(path: &Path, content: &str) -> Result<()> {
-    let parent = path
-        .parent()
-        .ok_or_else(|| anyhow::anyhow!("Cannot determine parent directory of {}", path.display()))?;
+    let _write_guard = crate::file_guard::acquire_internal_write(path)?;
+
+    let parent = path.parent().ok_or_else(|| {
+        anyhow::anyhow!("Cannot determine parent directory of {}", path.display())
+    })?;
 
     // Ensure parent directory exists
     if !parent.exists() {
@@ -33,10 +35,7 @@ pub fn atomic_write(path: &Path, content: &str) -> Result<()> {
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("config");
-        let extension = path
-            .extension()
-            .and_then(|s| s.to_str())
-            .unwrap_or("json");
+        let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("json");
         let backup_name = format!("{}_{}.{}.bak", file_stem, timestamp, extension);
         let backup_path = parent.join(backup_name);
 
@@ -47,6 +46,12 @@ pub fn atomic_write(path: &Path, content: &str) -> Result<()> {
                 e
             );
             // Non-fatal: we still proceed with the write
+        } else if let Err(e) = std::fs::read(&backup_path) {
+            eprintln!(
+                "Warning: Backup verification failed at {}: {}",
+                backup_path.display(),
+                e
+            );
         }
 
         // Clean up old backups (keep last 5)

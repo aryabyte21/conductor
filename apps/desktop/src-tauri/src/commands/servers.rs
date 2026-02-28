@@ -1,6 +1,6 @@
-use crate::config::{self, McpServerConfig, TransportType, log_activity};
+use crate::config::{self, log_activity, McpServerConfig, TransportType};
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 fn now_iso() -> String {
     chrono::Utc::now().to_rfc3339()
@@ -39,7 +39,10 @@ pub async fn add_server(request: AddServerRequest) -> Result<McpServerConfig, St
     let mut cfg = config::read_config().map_err(|e| e.to_string())?;
 
     if cfg.servers.iter().any(|s| s.name == request.name) {
-        return Err(format!("Server with name '{}' already exists", request.name));
+        return Err(format!(
+            "Server with name '{}' already exists",
+            request.name
+        ));
     }
 
     let transport = request.transport.unwrap_or_else(|| {
@@ -50,9 +53,13 @@ pub async fn add_server(request: AddServerRequest) -> Result<McpServerConfig, St
         }
     });
 
+    let server_id = uuid::Uuid::new_v4().to_string();
+    let normalized_secret_keys = normalize_secret_env_keys(&request.secret_env_keys);
+    validate_secret_env_keys(&server_id, &request.env, &normalized_secret_keys)?;
+
     let ts = now_iso();
     let server = McpServerConfig {
-        id: uuid::Uuid::new_v4().to_string(),
+        id: server_id,
         name: request.name,
         display_name: request.display_name,
         description: request.description,
@@ -62,7 +69,7 @@ pub async fn add_server(request: AddServerRequest) -> Result<McpServerConfig, St
         args: request.args,
         env: request.env,
         url: request.url,
-        secret_env_keys: request.secret_env_keys,
+        secret_env_keys: normalized_secret_keys,
         icon_url: request.icon_url,
         tags: request.tags,
         source: Some("conductor".to_string()),
@@ -74,7 +81,13 @@ pub async fn add_server(request: AddServerRequest) -> Result<McpServerConfig, St
     cfg.servers.push(server.clone());
     config::write_config(&cfg).map_err(|e| e.to_string())?;
 
-    log_activity("add", &format!("Added server {}", server.name), None, None, Some(server.id.clone()));
+    log_activity(
+        "add",
+        &format!("Added server {}", server.name),
+        None,
+        None,
+        Some(server.id.clone()),
+    );
 
     Ok(server)
 }
@@ -105,7 +118,10 @@ pub struct UpdateServerRequest {
 }
 
 #[tauri::command]
-pub async fn update_server(server_id: String, request: UpdateServerRequest) -> Result<McpServerConfig, String> {
+pub async fn update_server(
+    server_id: String,
+    request: UpdateServerRequest,
+) -> Result<McpServerConfig, String> {
     let mut cfg = config::read_config().map_err(|e| e.to_string())?;
 
     let server = cfg
@@ -137,7 +153,7 @@ pub async fn update_server(server_id: String, request: UpdateServerRequest) -> R
         server.url = if u.is_empty() { None } else { Some(u) };
     }
     if let Some(sek) = request.secret_env_keys {
-        server.secret_env_keys = sek;
+        server.secret_env_keys = normalize_secret_env_keys(&sek);
     }
     if let Some(iu) = request.icon_url {
         server.icon_url = if iu.is_empty() { None } else { Some(iu) };
@@ -146,6 +162,9 @@ pub async fn update_server(server_id: String, request: UpdateServerRequest) -> R
         server.enabled = en;
     }
 
+    let normalized_secret_keys = normalize_secret_env_keys(&server.secret_env_keys);
+    validate_secret_env_keys(&server.id, &server.env, &normalized_secret_keys)?;
+    server.secret_env_keys = normalized_secret_keys;
     server.updated_at = Some(now_iso());
 
     let updated = server.clone();
@@ -171,7 +190,13 @@ pub async fn delete_server(server_id: String) -> Result<(), String> {
 
     config::write_config(&cfg).map_err(|e| e.to_string())?;
 
-    log_activity("delete", &format!("Deleted server {}", server_id), None, None, Some(server_id));
+    log_activity(
+        "delete",
+        &format!("Deleted server {}", server_id),
+        None,
+        None,
+        Some(server_id),
+    );
 
     Ok(())
 }
@@ -192,7 +217,63 @@ pub async fn toggle_server(server_id: String, enabled: bool) -> Result<McpServer
     config::write_config(&cfg).map_err(|e| e.to_string())?;
 
     let action = if enabled { "Enabled" } else { "Disabled" };
-    log_activity("add", &format!("{} server {}", action, updated.name), None, None, Some(updated.id.clone()));
+    log_activity(
+        "add",
+        &format!("{} server {}", action, updated.name),
+        None,
+        None,
+        Some(updated.id.clone()),
+    );
 
     Ok(updated)
+}
+
+fn normalize_secret_env_keys(keys: &[String]) -> Vec<String> {
+    let mut seen = HashSet::new();
+    let mut normalized = Vec::new();
+
+    for key in keys {
+        let trimmed = key.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if seen.insert(trimmed.to_string()) {
+            normalized.push(trimmed.to_string());
+        }
+    }
+
+    normalized.sort();
+    normalized
+}
+
+fn validate_secret_env_keys(
+    server_id: &str,
+    env: &HashMap<String, String>,
+    secret_env_keys: &[String],
+) -> Result<(), String> {
+    let missing: Vec<String> = secret_env_keys
+        .iter()
+        .filter(|key| {
+            !env.contains_key((*key).as_str()) && !secret_exists_in_keychain(server_id, key)
+        })
+        .cloned()
+        .collect();
+
+    if !missing.is_empty() {
+        return Err(format!(
+            "secretEnvKeys contains keys without values in env or keychain: {}",
+            missing.join(", ")
+        ));
+    }
+
+    Ok(())
+}
+
+fn secret_exists_in_keychain(server_id: &str, key: &str) -> bool {
+    let username = format!("{}:{}", server_id, key);
+    keyring::Entry::new("conductor", &username)
+        .ok()
+        .and_then(|entry| entry.get_password().ok())
+        .map(|v| !v.trim().is_empty())
+        .unwrap_or(false)
 }

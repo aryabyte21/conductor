@@ -89,10 +89,7 @@ fn find_app_icon(bundle: &PathBuf, resources: &PathBuf) -> Option<PathBuf> {
     }
 
     // Strategy 2: Try well-known icon file names derived from the app name
-    let app_name = bundle
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("");
+    let app_name = bundle.file_stem().and_then(|s| s.to_str()).unwrap_or("");
     if !app_name.is_empty() {
         let candidate = resources.join(format!("{}.icns", app_name));
         if candidate.exists() {
@@ -260,7 +257,10 @@ fn try_icon_from_url_domain(url: &str) -> Option<String> {
     // Use Google's favicon service for the domain
     // This returns a real favicon for any public domain
     let base_domain = extract_base_domain(host);
-    Some(format!("https://www.google.com/s2/favicons?domain={}&sz=64", base_domain))
+    Some(format!(
+        "https://www.google.com/s2/favicons?domain={}&sz=64",
+        base_domain
+    ))
 }
 
 /// Extract the registrable domain from a hostname

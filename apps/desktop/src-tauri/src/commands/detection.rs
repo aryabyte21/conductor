@@ -20,7 +20,10 @@ pub async fn detect_clients() -> Result<Vec<ClientDetection>, String> {
         let detected = adapter.detect();
         let (server_count, server_names) = if detected {
             match adapter.read_servers() {
-                Ok(servers) => (servers.len(), servers.iter().map(|s| s.name.clone()).collect()),
+                Ok(servers) => (
+                    servers.len(),
+                    servers.iter().map(|s| s.name.clone()).collect(),
+                ),
                 Err(_) => (0, Vec::new()),
             }
         } else {
@@ -38,7 +41,9 @@ pub async fn detect_clients() -> Result<Vec<ClientDetection>, String> {
             display_name: adapter.display_name().to_string(),
             icon: adapter.icon().to_string(),
             detected,
-            config_path: adapter.config_path().map(|p| p.to_string_lossy().to_string()),
+            config_path: adapter
+                .config_path()
+                .map(|p| p.to_string_lossy().to_string()),
             server_count,
             server_names,
             last_synced_at,
