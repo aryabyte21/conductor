@@ -40,8 +40,9 @@ export function truncatePath(path: string, maxLen = 50): string {
   if (path.length <= maxLen) return path;
   const parts = path.split("/");
   if (parts.length <= 3) return path;
+  // Keep last 3 segments for context (e.g., "Code/User/mcp.json")
   const tail = parts.slice(-3).join("/");
-  return `~/...${tail}`;
+  return `~/\u2026/${tail}`;
 }
 
 export function validateServerName(name: string): string | null {

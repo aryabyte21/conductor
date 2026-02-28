@@ -315,26 +315,37 @@ export function RegistryView() {
       .finally(() => setLoadingPopular(false));
   }, []);
 
+  const searchIdRef = useRef(0);
+
   const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) {
+    const trimmed = q.trim();
+    if (!trimmed) {
       setResults([]);
       setHasSearched(false);
       return;
     }
 
+    const id = ++searchIdRef.current;
     setLoading(true);
     setHasSearched(true);
 
     try {
-      const servers = await tauri.searchRegistry(q);
-      setResults(servers);
+      const servers = await tauri.searchRegistry(trimmed);
+      // Only update if this is still the latest search
+      if (id === searchIdRef.current) {
+        setResults(servers);
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      toast.error("Search failed", { description: message });
-      setResults([]);
+      if (id === searchIdRef.current) {
+        const message = err instanceof Error ? err.message : String(err);
+        toast.error("Search failed", { description: message });
+        setResults([]);
+      }
     }
 
-    setLoading(false);
+    if (id === searchIdRef.current) {
+      setLoading(false);
+    }
   }, []);
 
   // Debounced search

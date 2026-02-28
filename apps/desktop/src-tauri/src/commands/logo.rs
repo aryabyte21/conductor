@@ -157,6 +157,9 @@ fn convert_icns_to_base64(icns_path: &PathBuf, client_id: &str) -> Option<String
     let tmp_dir = std::env::temp_dir();
     let tmp_png = tmp_dir.join(format!("conductor_icon_{}.png", client_id));
 
+    let icns_str = icns_path.to_string_lossy();
+    let tmp_str = tmp_png.to_string_lossy();
+
     let output = std::process::Command::new("sips")
         .args([
             "-s",
@@ -164,19 +167,21 @@ fn convert_icns_to_base64(icns_path: &PathBuf, client_id: &str) -> Option<String
             "png",
             "--resampleWidth",
             "128",
-            icns_path.to_str().unwrap_or(""),
+            &*icns_str,
             "--out",
-            tmp_png.to_str().unwrap_or(""),
+            &*tmp_str,
         ])
         .output()
         .ok()?;
 
     if !output.status.success() {
+        let _ = std::fs::remove_file(&tmp_png); // Clean up on failure
         return None;
     }
 
-    let png_bytes = std::fs::read(&tmp_png).ok()?;
-    let _ = std::fs::remove_file(&tmp_png);
+    let png_bytes = std::fs::read(&tmp_png);
+    let _ = std::fs::remove_file(&tmp_png); // Always clean up
+    let png_bytes = png_bytes.ok()?;
     let b64 = base64_encode(&png_bytes);
     Some(format!("data:image/png;base64,{}", b64))
 }

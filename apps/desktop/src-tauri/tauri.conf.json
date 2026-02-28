@@ -29,13 +29,37 @@
     "withGlobalTauri": true
   },
   "bundle": {
+    "active": true,
+    "targets": ["dmg", "app"],
     "icon": [
       "icons/icon_32.png",
       "icons/icon_128.png",
       "icons/icon_256.png",
       "icons/icon_512.png",
       "icons/icon.png"
-    ]
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "Manage MCP server configs across AI coding clients",
+    "longDescription": "Conductor is a local-first desktop app that manages MCP (Model Context Protocol) server configurations across every major AI coding tool. One source of truth, automatic sync, secrets in your system keychain.",
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "dmg": {
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        },
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        }
+      },
+      "entitlements": null,
+      "exceptionDomain": ""
+    }
   },
   "plugins": {}
 }

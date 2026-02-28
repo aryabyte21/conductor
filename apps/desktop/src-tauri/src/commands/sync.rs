@@ -123,16 +123,27 @@ pub async fn sync_to_all_clients() -> Result<Vec<SyncResult>, String> {
 }
 
 fn inject_secrets(server: &mut McpServerConfig) {
+    // Inject secret env vars from keychain
     for key in &server.secret_env_keys {
         let username = format!("{}:{}", server.id, key);
-        let entry = keyring::Entry::new("conductor", &username);
-        match entry {
-            Ok(entry) => {
-                if let Ok(secret) = entry.get_password() {
-                    server.env.insert(key.clone(), secret);
-                }
+        if let Ok(entry) = keyring::Entry::new("conductor", &username) {
+            if let Ok(secret) = entry.get_password() {
+                server.env.insert(key.clone(), secret);
             }
-            Err(_) => {}
+        }
+    }
+
+    // Also inject OAuth token if one exists for this server.
+    // Many MCP servers expect an OAUTH_TOKEN env var for authentication.
+    // This ensures users don't need to re-authenticate in each client.
+    let token_key = format!("{}:oauth_token", server.id);
+    if let Ok(entry) = keyring::Entry::new("conductor", &token_key) {
+        if let Ok(token) = entry.get_password() {
+            // Only inject if the server doesn't already have it as a secret_env_key
+            // (to avoid overwriting user-specified keys)
+            if !server.secret_env_keys.iter().any(|k| k == "OAUTH_TOKEN") {
+                server.env.insert("OAUTH_TOKEN".to_string(), token);
+            }
         }
     }
 }

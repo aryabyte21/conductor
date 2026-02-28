@@ -89,7 +89,10 @@ struct RegistrySearchResponse {
 pub async fn get_popular_servers() -> Result<Vec<RegistryServer>, String> {
     let url = "https://registry.smithery.ai/servers?pageSize=20";
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| e.to_string())?;
     let response = client
         .get(url)
         .header("Accept", "application/json")
@@ -125,7 +128,10 @@ pub async fn search_registry(query: String) -> Result<Vec<RegistryServer>, Strin
         encoded_query
     );
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| e.to_string())?;
     let response = client
         .get(&url)
         .header("Accept", "application/json")
@@ -162,7 +168,10 @@ pub async fn install_from_registry(registry_id: String) -> Result<McpServerConfi
     let encoded_id = urlencoding::encode(&registry_id);
     let url = format!("https://registry.smithery.ai/servers/{}", encoded_id);
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| e.to_string())?;
     let response = client
         .get(&url)
         .header("Accept", "application/json")

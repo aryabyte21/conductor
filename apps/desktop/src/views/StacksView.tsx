@@ -599,9 +599,9 @@ export function StacksView() {
       const saved = await tauri.saveExportedStack(json);
       setSavedStacks((prev) => [saved, ...prev]);
       navigator.clipboard.writeText(json);
-    } catch {
-      // Still add to local state as fallback
-      setSavedStacks((prev) => [{ id: crypto.randomUUID(), json, createdAt: new Date().toISOString() }, ...prev]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error("Failed to save stack", { description: message });
       navigator.clipboard.writeText(json);
     }
   };
