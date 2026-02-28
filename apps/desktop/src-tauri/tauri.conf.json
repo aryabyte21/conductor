@@ -1,0 +1,41 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "Conductor",
+  "version": "1.0.0",
+  "identifier": "dev.conductormcp.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "pnpm dev:frontend",
+    "beforeBuildCommand": "pnpm build:frontend"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Conductor",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ],
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true
+    },
+    "withGlobalTauri": true
+  },
+  "bundle": {
+    "icon": [
+      "icons/icon_32.png",
+      "icons/icon_128.png",
+      "icons/icon_256.png",
+      "icons/icon_512.png",
+      "icons/icon.png"
+    ]
+  },
+  "plugins": {}
+}

@@ -1,0 +1,13 @@
+{
+  "name": "conductor",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "scripts": {
+    "dev:desktop": "pnpm --filter @conductor/desktop tauri dev",
+    "dev:web": "pnpm --filter @conductor/web dev",
+    "build:desktop": "pnpm --filter @conductor/desktop tauri build",
+    "build:web": "pnpm --filter @conductor/web build",
+    "type-check": "pnpm -r type-check",
+    "lint": "pnpm -r lint"
+  }
+}
