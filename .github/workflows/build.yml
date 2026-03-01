@@ -3,9 +3,16 @@ name: Build & Release
 on:
   push:
     branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "packages/types/**"
+      - "pnpm-lock.yaml"
     tags: ["v*"]
   pull_request:
     branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "packages/types/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
