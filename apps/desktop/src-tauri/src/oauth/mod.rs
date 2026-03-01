@@ -642,6 +642,14 @@ fn success_html() -> String {
 </html>"#.to_string()
 }
 
+fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
+}
+
 fn error_html(error: &str) -> String {
     format!(
         r#"<!DOCTYPE html>
@@ -655,6 +663,6 @@ fn error_html(error: &str) -> String {
   </div>
 </body>
 </html>"#,
-        error
+        escape_html(error)
     )
 }

@@ -176,7 +176,7 @@ function DangerConfirmDialog({
 
 export function SettingsView() {
   const [settings, setSettings] = useState<AppSettings>({
-    launchAtLogin: false,
+    launchAtLogin: true,
     startMinimized: false,
     autoSync: true,
     syncDelay: 5,

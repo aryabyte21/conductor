@@ -108,7 +108,7 @@ fn default_backup_retention() -> u32 {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            launch_at_login: false,
+            launch_at_login: true,
             start_minimized: false,
             auto_sync: true,
             sync_delay: 5,

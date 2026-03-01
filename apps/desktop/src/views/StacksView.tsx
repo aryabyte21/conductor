@@ -555,7 +555,7 @@ function ExportedStackCard({
         <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 shrink-0">
           <Layers className="w-5 h-5 text-accent" />
           <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-accent text-[9px] font-bold text-white">
-            {stack.servers.length}
+            {(stack.servers ?? []).length}
           </span>
         </div>
         <div className="flex-1 min-w-0">
@@ -578,7 +578,7 @@ function ExportedStackCard({
 
       {/* Server icons row */}
       <div className="flex items-center gap-1.5 mb-3">
-        {stack.servers.slice(0, 6).map((s, i) => (
+        {(stack.servers ?? []).slice(0, 6).map((s, i) => (
           <ServerLogo
             key={i}
             name={s.name}
@@ -588,15 +588,15 @@ function ExportedStackCard({
             size={28}
           />
         ))}
-        {stack.servers.length > 6 && (
+        {(stack.servers ?? []).length > 6 && (
           <span className="text-[11px] text-text-muted ml-1">
-            +{stack.servers.length - 6}
+            +{(stack.servers ?? []).length - 6}
           </span>
         )}
       </div>
 
       {/* Tags */}
-      {stack.tags.length > 0 && (
+      {(stack.tags ?? []).length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {stack.tags.map((tag) => (
             <span

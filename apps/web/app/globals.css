@@ -25,6 +25,7 @@
 
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 5rem; /* offset for fixed navbar */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

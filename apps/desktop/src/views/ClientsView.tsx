@@ -159,21 +159,21 @@ function ClientCard({ client }: { client: ClientDetection }) {
         </div>
       </div>
 
-      {/* Config path */}
+      {/* Config path + stats */}
+      <div className="flex items-center gap-3 mb-3 text-[11px] text-text-muted">
+        <span>{client.serverCount} servers</span>
+        {client.lastSyncedAt && (
+          <>
+            <span className="text-border">·</span>
+            <span>Synced {formatRelativeTime(client.lastSyncedAt)}</span>
+          </>
+        )}
+      </div>
       {client.configPath && (
-        <p className="text-[11px] text-text-muted font-mono mb-3 truncate" title={client.configPath}>
+        <p className="text-[10px] text-text-muted/60 font-mono mb-3 truncate" title={client.configPath}>
           {truncatePath(client.configPath)}
         </p>
       )}
-
-      {/* Stats */}
-      <div className="flex items-center gap-4 mb-3 text-xs text-text-muted">
-        <span>{client.serverCount} servers</span>
-        {client.lastSyncedAt && (
-          <span>Last sync: {formatRelativeTime(client.lastSyncedAt)}</span>
-        )}
-
-      </div>
 
       {/* Server chips */}
       {client.serverNames && client.serverNames.length > 0 && (
@@ -198,12 +198,12 @@ function ClientCard({ client }: { client: ClientDetection }) {
       )}
 
       {/* Actions */}
-      <div className="flex gap-2 mt-auto pt-3">
+      <div className="flex gap-2 mt-auto pt-3 border-t border-border/50">
         <button
           onClick={handleImport}
           disabled={!client.detected || importing}
           className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-medium transition-colors",
+            "flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-medium transition-colors",
             client.detected
               ? "border border-border text-text-secondary hover:bg-surface-3"
               : "border border-border/50 text-text-muted cursor-not-allowed"
@@ -220,7 +220,7 @@ function ClientCard({ client }: { client: ClientDetection }) {
           onClick={handleSync}
           disabled={!client.detected || syncing}
           className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-medium transition-colors",
+            "flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-medium transition-colors",
             client.detected
               ? "bg-accent text-white hover:bg-accent/90"
               : "bg-surface-3 text-text-muted cursor-not-allowed"
@@ -270,6 +270,9 @@ export function ClientsView() {
             <h1 className="text-xl font-bold text-text-primary">AI Clients</h1>
             <p className="text-sm text-text-muted mt-0.5">
               {detectedCount} of {clients.length} clients detected
+              <span className="text-text-muted/60 ml-1.5">
+                · Pull reads configs, Push writes your servers
+              </span>
             </p>
           </div>
           <div className="flex gap-2">

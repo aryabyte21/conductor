@@ -69,22 +69,32 @@ export function ServerAvatar({
     }
   }
 
-  // Image URL
+  // Image URL — render both img + hidden letter fallback as siblings
   if (logoUrl && !logoUrl.startsWith("icon:")) {
     return (
-      <img
-        src={logoUrl}
-        alt={name}
-        className={cn("rounded-full object-cover shrink-0", className)}
-        style={{ width: size, height: size }}
-        onError={(e) => {
-          // Fallback to letter avatar on image load error
-          const target = e.currentTarget;
-          target.style.display = "none";
-          const fallback = target.nextElementSibling as HTMLElement;
-          if (fallback) fallback.style.display = "flex";
-        }}
-      />
+      <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
+        <img
+          src={logoUrl}
+          alt={name}
+          className="rounded-full object-cover w-full h-full"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.style.display = "none";
+            const fallback = target.nextElementSibling as HTMLElement;
+            if (fallback) fallback.style.display = "flex";
+          }}
+        />
+        <div
+          className="items-center justify-center rounded-full font-semibold text-white absolute inset-0"
+          style={{
+            display: "none",
+            backgroundColor: color,
+            fontSize: size * 0.4,
+          }}
+        >
+          {letter}
+        </div>
+      </div>
     );
   }
 

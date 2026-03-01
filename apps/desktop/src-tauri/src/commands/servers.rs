@@ -218,7 +218,7 @@ pub async fn toggle_server(server_id: String, enabled: bool) -> Result<McpServer
 
     let action = if enabled { "Enabled" } else { "Disabled" };
     log_activity(
-        "add",
+        "toggle",
         &format!("{} server {}", action, updated.name),
         None,
         None,
