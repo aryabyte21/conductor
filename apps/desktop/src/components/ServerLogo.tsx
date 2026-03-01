@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { generateAvatarColor } from "@/lib/utils";
+import { cn, generateAvatarColor } from "@/lib/utils";
 import * as tauri from "@/lib/tauri";
 
 // Module-level cache so we don't re-fetch across re-renders
@@ -64,13 +64,21 @@ export function ServerLogo({
   // Show resolved image
   if (loaded && resolvedUrl && !imgError) {
     return (
-      <img
-        src={resolvedUrl}
-        alt={name}
-        className={`rounded-xl object-cover shrink-0 bg-white/10 ${className || ""}`}
+      <div
+        className={cn(
+          "flex items-center justify-center rounded-xl shrink-0 overflow-hidden bg-white/5",
+          className
+        )}
         style={{ width: size, height: size }}
-        onError={() => setImgError(true)}
-      />
+      >
+        <img
+          src={resolvedUrl}
+          alt={name}
+          className="object-contain"
+          style={{ width: size * 0.75, height: size * 0.75 }}
+          onError={() => setImgError(true)}
+        />
+      </div>
     );
   }
 

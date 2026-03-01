@@ -139,7 +139,7 @@ function ClientCard({ client }: { client: ClientDetection }) {
   return (
     <div
       className={cn(
-        "relative flex flex-col p-4 rounded-xl border transition-all",
+        "relative flex flex-col h-full p-4 rounded-xl border transition-all",
         flashGreen
           ? "border-success/50 bg-success/5"
           : "border-border bg-surface-2 hover:border-text-muted/30"
@@ -177,7 +177,7 @@ function ClientCard({ client }: { client: ClientDetection }) {
 
       {/* Server chips */}
       {client.serverNames && client.serverNames.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4 max-h-[60px] overflow-hidden">
+        <div className="flex flex-wrap gap-1.5 mb-4">
           {client.serverNames.slice(0, 5).map((name, i) => (
             <span
               key={i}
@@ -187,7 +187,10 @@ function ClientCard({ client }: { client: ClientDetection }) {
             </span>
           ))}
           {client.serverNames.length > 5 && (
-            <span className="inline-flex h-5 px-2 rounded bg-surface-3 text-[10px] text-text-muted font-medium">
+            <span
+              className="inline-flex h-5 px-2 rounded bg-surface-3 text-[10px] text-text-muted font-medium cursor-default"
+              title={client.serverNames.slice(5).join("\n")}
+            >
               +{client.serverNames.length - 5} more
             </span>
           )}

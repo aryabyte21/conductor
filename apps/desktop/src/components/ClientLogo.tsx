@@ -29,9 +29,9 @@ const clientInitials: Record<string, string> = {
 const bundledLogos: Record<string, { src: string; invert?: boolean }> = {
   "claude-desktop": { src: "/logos/claude.svg" },
   "claude-code": { src: "/logos/claude.svg" },
-  cursor: { src: "/logos/cursor.png" },
+  cursor: { src: "/logos/cursor.svg", invert: false },
   vscode: { src: "/logos/vscode.svg" },
-  windsurf: { src: "/logos/windsurf.svg", invert: true },
+  windsurf: { src: "/logos/windsurf.svg" },
   zed: { src: "/logos/zed.svg" },
   jetbrains: { src: "/logos/jetbrains.svg" },
   codex: { src: "/logos/codex.svg" },
@@ -97,7 +97,7 @@ export function ClientLogo({
         <img
           src={bundled.src}
           alt={displayName}
-          className={`object-contain${bundled.invert ? " invert" : ""}`}
+          className="object-contain"
           style={{ width: size * 0.75, height: size * 0.75 }}
         />
       </div>
@@ -106,14 +106,24 @@ export function ClientLogo({
 
   // Fallback 1: macOS .app icon from Tauri (for unknown clients)
   if (loaded && iconSrc && !imgError) {
+    const tint = clientColors[clientId] || "#71717A";
     return (
-      <img
-        src={iconSrc}
-        alt={displayName}
-        className="rounded-2xl shrink-0 object-cover"
-        style={{ width: size, height: size }}
-        onError={() => setImgError(true)}
-      />
+      <div
+        className="flex items-center justify-center rounded-2xl shrink-0 overflow-hidden"
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: tint + "15",
+        }}
+      >
+        <img
+          src={iconSrc}
+          alt={displayName}
+          className="object-contain"
+          style={{ width: size * 0.75, height: size * 0.75 }}
+          onError={() => setImgError(true)}
+        />
+      </div>
     );
   }
 

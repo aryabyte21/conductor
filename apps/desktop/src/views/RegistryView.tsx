@@ -286,39 +286,46 @@ function RegistryCard({
   return (
     <div
       className={cn(
-        "flex items-start gap-4 p-4 rounded-xl border transition-all",
+        "flex flex-col p-4 rounded-xl border transition-all h-full",
         isInstalled
           ? "border-success/20 bg-success/5 hover:border-success/30"
           : "border-border bg-surface-2 hover:border-text-muted/30"
       )}
     >
-      <ServerLogo
-        name={server.qualifiedName || server.displayName}
-        iconUrl={server.iconUrl}
-        size={52}
-      />
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-sm font-semibold text-text-primary truncate">
-            {server.displayName}
-          </span>
-          {server.verified && (
-            <BadgeCheck className="w-4 h-4 text-accent shrink-0" />
-          )}
+      {/* Top row: logo + name */}
+      <div className="flex items-center gap-3 mb-3">
+        <ServerLogo
+          name={server.qualifiedName || server.displayName}
+          iconUrl={server.iconUrl}
+          size={40}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold text-text-primary truncate">
+              {server.displayName}
+            </span>
+            {server.verified && (
+              <BadgeCheck className="w-3.5 h-3.5 text-accent shrink-0" />
+            )}
+          </div>
+          <p className="text-[11px] text-text-muted font-mono truncate">
+            {server.qualifiedName}
+          </p>
         </div>
-        <p className="text-xs text-text-muted font-mono mb-1.5">
-          {server.qualifiedName}
-        </p>
-        <p className="text-sm text-text-secondary line-clamp-2 mb-3">
-          {server.description}
-        </p>
+      </div>
 
-        <div className="flex items-center gap-4">
+      {/* Description */}
+      <p className="text-xs text-text-secondary line-clamp-2 mb-3 flex-1">
+        {server.description}
+      </p>
+
+      {/* Footer: stats + action */}
+      <div className="flex items-center justify-between pt-2 border-t border-border">
+        <div className="flex items-center gap-3">
           {(server.useCount ?? 0) > 0 && (
-            <span className="flex items-center gap-1 text-xs text-text-muted">
-              <Users className="w-3.5 h-3.5" />
-              {(server.useCount ?? 0).toLocaleString()} uses
+            <span className="flex items-center gap-1 text-[11px] text-text-muted">
+              <Users className="w-3 h-3" />
+              {(server.useCount ?? 0).toLocaleString()}
             </span>
           )}
           {server.homepage && (
@@ -326,30 +333,29 @@ function RegistryCard({
               href={server.homepage}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-accent hover:text-accent/80"
+              className="flex items-center gap-1 text-[11px] text-accent hover:text-accent/80"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
+              <ExternalLink className="w-3 h-3" />
               Docs
             </a>
           )}
         </div>
+        {isInstalled ? (
+          <span className="flex items-center gap-1 text-[11px] font-medium text-success">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Installed
+          </span>
+        ) : (
+          <button
+            onClick={onInstall}
+            className="flex items-center gap-1 h-7 px-3 rounded-lg bg-accent text-white text-[11px] font-medium
+              hover:bg-accent/90 transition-colors"
+          >
+            <Download className="w-3 h-3" />
+            Install
+          </button>
+        )}
       </div>
-
-      {isInstalled ? (
-        <span className="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-success border border-success/20">
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          Installed
-        </span>
-      ) : (
-        <button
-          onClick={onInstall}
-          className="shrink-0 flex items-center gap-1.5 h-8 px-4 rounded-lg bg-accent text-white text-xs font-medium
-            hover:bg-accent/90 transition-colors"
-        >
-          <Download className="w-3.5 h-3.5" />
-          Install
-        </button>
-      )}
     </div>
   );
 }
@@ -358,19 +364,22 @@ function RegistryCard({
 
 function RegistrySkeleton() {
   return (
-    <div className="space-y-3">
-      {[1, 2, 3, 4, 5].map((i) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
         <div
           key={i}
-          className="flex items-start gap-4 p-4 rounded-xl border border-border bg-surface-2 animate-pulse"
+          className="flex flex-col p-4 rounded-xl border border-border bg-surface-2 animate-pulse"
         >
-          <div className="w-[52px] h-[52px] rounded-xl bg-surface-3" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 w-1/3 rounded bg-surface-3" />
-            <div className="h-3 w-1/4 rounded bg-surface-3" />
-            <div className="h-3 w-2/3 rounded bg-surface-3" />
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-surface-3 shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 w-2/3 rounded bg-surface-3" />
+              <div className="h-3 w-1/2 rounded bg-surface-3" />
+            </div>
           </div>
-          <div className="h-8 w-20 rounded-lg bg-surface-3" />
+          <div className="h-3 w-full rounded bg-surface-3 mb-1.5" />
+          <div className="h-3 w-3/4 rounded bg-surface-3 mb-3" />
+          <div className="h-7 w-20 rounded-lg bg-surface-3 self-end mt-auto" />
         </div>
       ))}
     </div>
@@ -578,18 +587,20 @@ export function RegistryView() {
           loadingPopular ? (
             <RegistrySkeleton />
           ) : popular.length > 0 ? (
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+            <div>
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
                 Popular MCP Servers
               </p>
-              {popular.map((server) => (
-                <RegistryCard
-                  key={server.id}
-                  server={server}
-                  isInstalled={isServerInstalled(server)}
-                  onInstall={() => setInstallTarget(server)}
-                />
-              ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {popular.map((server) => (
+                  <RegistryCard
+                    key={server.id}
+                    server={server}
+                    isInstalled={isServerInstalled(server)}
+                    onInstall={() => setInstallTarget(server)}
+                  />
+                ))}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20">
@@ -618,20 +629,22 @@ export function RegistryView() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+          <div>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
               {activeCategory !== "all"
                 ? categories.find((c) => c.id === activeCategory)?.label ?? "Results"
                 : `${results.length} result${results.length !== 1 ? "s" : ""}`}
             </p>
-            {results.map((server) => (
-              <RegistryCard
-                key={server.id}
-                server={server}
-                isInstalled={isServerInstalled(server)}
-                onInstall={() => setInstallTarget(server)}
-              />
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {results.map((server) => (
+                <RegistryCard
+                  key={server.id}
+                  server={server}
+                  isInstalled={isServerInstalled(server)}
+                  onInstall={() => setInstallTarget(server)}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
