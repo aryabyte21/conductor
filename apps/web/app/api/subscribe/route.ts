@@ -19,7 +19,9 @@ function isRateLimited(ip: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
     if (isRateLimited(ip)) {
       return NextResponse.json(
         { error: "Too many requests. Please try again later." },
@@ -47,26 +49,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.RESEND_API_KEY || !process.env.RESEND_AUDIENCE_ID) {
+    const apiKey = process.env.KIT_API_KEY;
+    if (!apiKey) {
       return NextResponse.json(
         { error: "not_configured" },
         { status: 503 }
       );
     }
 
-    const audienceId = encodeURIComponent(process.env.RESEND_AUDIENCE_ID);
-    const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+    const res = await fetch("https://api.kit.com/v4/subscribers", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+        "X-Kit-Api-Key": apiKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email: trimmedEmail }),
+      body: JSON.stringify({ email_address: trimmedEmail }),
     });
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      console.error("Resend API error:", res.status, data);
+      console.error("Kit API error:", res.status, data);
       return NextResponse.json(
         { error: "Failed to subscribe. Please try again later." },
         { status: 502 }
