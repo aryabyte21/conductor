@@ -19,6 +19,14 @@
   Conductor is a local-first desktop app that manages <a href="https://modelcontextprotocol.io">MCP (Model Context Protocol)</a> server configurations across every major AI coding tool. One source of truth, automatic sync, secrets in your system keychain.
 </p>
 
+<p align="center">
+  <a href="https://conductor-mcp.vercel.app">Website</a> · <a href="https://github.com/aryabyte21/conductor/releases">Releases</a> · <a href="#installation">Install</a>
+</p>
+
+```bash
+curl -fsSL https://conductor-mcp.vercel.app/install.sh | sh
+```
+
 ---
 
 ## Screenshots
@@ -109,9 +117,17 @@ Conductor watches client config files for external changes and updates its detec
 
 ## Installation
 
-### Download
+### One-line install (recommended)
 
-Download the latest `.dmg` from [GitHub Releases](https://github.com/aryabyte21/conductor/releases).
+```bash
+curl -fsSL https://conductor-mcp.vercel.app/install.sh | sh
+```
+
+Auto-detects your chip (Apple Silicon / Intel), downloads the latest DMG, installs to `/Applications`, and removes the macOS quarantine flag.
+
+### Manual download
+
+Download the `.dmg` from [GitHub Releases](https://github.com/aryabyte21/conductor/releases) or from [conductor-mcp.vercel.app](https://conductor-mcp.vercel.app).
 
 ### Build from Source
 
