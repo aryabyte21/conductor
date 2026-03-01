@@ -266,7 +266,7 @@ export function Hero() {
         </p>
 
         {/* Install command — primary CTA */}
-        <div className="mx-auto mt-10 max-w-xl">
+        <div className="mx-auto mt-10 max-w-2xl">
           <div className="rounded-xl border border-[#27272A] bg-[#111113] p-4">
             <div className="mb-2 flex items-center gap-2 text-xs text-[#A1A1AA]">
               <Terminal className="h-3.5 w-3.5 text-[#7C3AED]" />
