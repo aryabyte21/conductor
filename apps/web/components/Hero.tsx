@@ -2,21 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ArrowRight, Apple, Shield, Globe, Scale, Download } from "lucide-react";
-
-function useLatestRelease() {
-  const [dmgUrl, setDmgUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/latest-release")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.arm64) setDmgUrl(data.arm64);
-      })
-      .catch(() => {});
-  }, []);
-
-  return dmgUrl;
-}
+import { useDownload } from "@/lib/use-download";
 
 function DownloadStat() {
   const [count, setCount] = useState<string | null>(null);
@@ -191,8 +177,8 @@ function AppScreenshot() {
 }
 
 export function Hero() {
-  const dmgUrl = useLatestRelease();
-  const downloadHref = dmgUrl ?? "#download";
+  const { dmgUrl } = useDownload();
+  const downloadHref = dmgUrl;
 
   return (
     <section className="relative pt-16">

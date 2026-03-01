@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Menu, X, Github, Download } from "lucide-react";
+import { useDownload } from "@/lib/use-download";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -12,18 +13,8 @@ const navLinks = [
 
 export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [dmgUrl, setDmgUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/latest-release")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.arm64) setDmgUrl(data.arm64);
-      })
-      .catch(() => {});
-  }, []);
-
-  const downloadHref = dmgUrl ?? "#download";
+  const { dmgUrl } = useDownload();
+  const downloadHref = dmgUrl;
 
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-[#27272A]/50 glass">
