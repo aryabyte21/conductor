@@ -55,7 +55,15 @@ export function ClientLogo({
   const [loaded, setLoaded] = useState(iconCache.has(clientId));
   const [imgError, setImgError] = useState(false);
 
+  const bundled = bundledLogos[clientId];
+
   useEffect(() => {
+    // If we have a bundled logo, skip the Tauri icon call entirely
+    if (bundled) {
+      setLoaded(true);
+      return;
+    }
+
     if (iconCache.has(clientId)) {
       setIconSrc(iconCache.get(clientId) ?? null);
       setLoaded(true);
@@ -73,23 +81,9 @@ export function ClientLogo({
         iconCache.set(clientId, null);
         setLoaded(true);
       });
-  }, [clientId]);
+  }, [clientId, bundled]);
 
-  // Primary: macOS .app icon from Tauri
-  if (loaded && iconSrc && !imgError) {
-    return (
-      <img
-        src={iconSrc}
-        alt={displayName}
-        className="rounded-2xl shrink-0 object-cover"
-        style={{ width: size, height: size }}
-        onError={() => setImgError(true)}
-      />
-    );
-  }
-
-  // Fallback 1: Bundled SVG/PNG logo
-  const bundled = bundledLogos[clientId];
+  // Primary: Bundled SVG/PNG logo (consistent size/shape for all known clients)
   if (bundled) {
     return (
       <div
@@ -104,9 +98,22 @@ export function ClientLogo({
           src={bundled.src}
           alt={displayName}
           className={`object-contain${bundled.invert ? " invert" : ""}`}
-          style={{ width: size * 0.65, height: size * 0.65 }}
+          style={{ width: size * 0.75, height: size * 0.75 }}
         />
       </div>
+    );
+  }
+
+  // Fallback 1: macOS .app icon from Tauri (for unknown clients)
+  if (loaded && iconSrc && !imgError) {
+    return (
+      <img
+        src={iconSrc}
+        alt={displayName}
+        className="rounded-2xl shrink-0 object-cover"
+        style={{ width: size, height: size }}
+        onError={() => setImgError(true)}
+      />
     );
   }
 

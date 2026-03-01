@@ -134,9 +134,49 @@ pub async fn delete_saved_stack(stack_id: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Validate that a URL is safe to fetch (no SSRF to internal networks)
+fn validate_url_safe(url: &str) -> Result<(), String> {
+    let parsed = url::Url::parse(url).map_err(|e| format!("Invalid URL: {}", e))?;
+
+    // Only allow HTTPS
+    if parsed.scheme() != "https" {
+        return Err("Only HTTPS URLs are allowed".to_string());
+    }
+
+    let host = parsed.host_str().ok_or("URL has no host")?;
+
+    // Reject localhost and loopback
+    if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]" || host == "0.0.0.0" {
+        return Err("URLs pointing to localhost are not allowed".to_string());
+    }
+
+    // Reject private IP ranges
+    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+        let is_private = match ip {
+            std::net::IpAddr::V4(v4) => {
+                v4.is_loopback()
+                    || v4.is_private()          // 10.x, 172.16-31.x, 192.168.x
+                    || v4.is_link_local()       // 169.254.x.x
+                    || v4.octets()[0] == 0      // 0.x.x.x
+            }
+            std::net::IpAddr::V6(v6) => {
+                v6.is_loopback() || v6.is_unspecified()
+            }
+        };
+        if is_private {
+            return Err("URLs pointing to private/internal networks are not allowed".to_string());
+        }
+    }
+
+    Ok(())
+}
+
 /// Fetch a stack from a URL and return it.
 #[tauri::command]
 pub async fn get_stack_from_url(url: String) -> Result<McpStack, String> {
+    // Validate URL is safe (no SSRF)
+    validate_url_safe(&url)?;
+
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .build()

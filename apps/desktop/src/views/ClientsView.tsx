@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import {
   RefreshCw,
-  Download,
-  Upload,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Monitor,
   CheckCircle2,
   AlertCircle,
@@ -177,7 +177,7 @@ function ClientCard({ client }: { client: ClientDetection }) {
 
       {/* Server chips */}
       {client.serverNames && client.serverNames.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="flex flex-wrap gap-1.5 mb-4 max-h-[60px] overflow-hidden">
           {client.serverNames.slice(0, 5).map((name, i) => (
             <span
               key={i}
@@ -194,41 +194,50 @@ function ClientCard({ client }: { client: ClientDetection }) {
         </div>
       )}
 
+      {/* Divider */}
+      <div className="border-t border-border my-1" />
+
       {/* Actions */}
-      <div className="flex gap-2 mt-auto">
+      <div className="flex gap-2 mt-auto pt-2">
         <button
           onClick={handleImport}
           disabled={!client.detected || importing}
           className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors",
+            "flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg text-xs font-medium transition-colors",
             client.detected
               ? "border border-border text-text-secondary hover:bg-surface-3"
               : "border border-border/50 text-text-muted cursor-not-allowed"
           )}
         >
-          {importing ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Download className="w-3.5 h-3.5" />
-          )}
-          Import
+          <span className="flex items-center gap-1.5">
+            {importing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ArrowDownToLine className="w-3.5 h-3.5" />
+            )}
+            Pull
+          </span>
+          <span className="text-[9px] text-text-muted font-normal">Read client config</span>
         </button>
         <button
           onClick={handleSync}
           disabled={!client.detected || syncing}
           className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors",
+            "flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg text-xs font-medium transition-colors",
             client.detected
               ? "bg-accent text-white hover:bg-accent/90"
               : "bg-surface-3 text-text-muted cursor-not-allowed"
           )}
         >
-          {syncing ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Upload className="w-3.5 h-3.5" />
-          )}
-          Sync
+          <span className="flex items-center gap-1.5">
+            {syncing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ArrowUpFromLine className="w-3.5 h-3.5" />
+            )}
+            Push
+          </span>
+          <span className="text-[9px] text-white/60 font-normal">Write servers here</span>
         </button>
       </div>
     </div>
@@ -290,9 +299,9 @@ export function ClientsView() {
               {syncingAll ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Upload className="w-4 h-4" />
+                <ArrowUpFromLine className="w-4 h-4" />
               )}
-              Sync All
+              Push All
               {outOfSyncCount > 0 && !syncingAll && (
                 <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/20 px-1.5 text-[10px] font-bold">
                   {outOfSyncCount}
@@ -312,8 +321,8 @@ export function ClientsView() {
             <div className="flex-1">
               <p className="text-sm font-medium text-text-primary">Welcome to Conductor</p>
               <p className="text-xs text-text-secondary mt-1">
-                Get started by importing servers from your existing AI clients, or add new servers manually.
-                Once you have servers configured, sync them to all your clients with one click.
+                Get started by pulling servers from your existing AI clients, or add new servers manually.
+                Once you have servers configured, push them to all your clients with one click.
               </p>
               <div className="flex gap-2 mt-3">
                 <button
@@ -334,7 +343,7 @@ export function ClientsView() {
             <AlertCircle className="w-4 h-4 text-warning shrink-0" />
             <p className="text-xs text-text-secondary flex-1">
               {outOfSyncCount} client{outOfSyncCount !== 1 ? "s are" : " is"} out of sync.
-              Click <strong>Sync All</strong> to push your latest server config.
+              Click <strong>Push All</strong> to push your latest server config.
             </p>
           </div>
         )}

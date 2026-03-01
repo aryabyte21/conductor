@@ -66,14 +66,18 @@ export function Download() {
 
           <div className="mt-4 flex items-center justify-center gap-3 text-sm">
             <a
-              href="https://github.com/aryabyte21/conductor/releases/latest/download/Conductor_1.0.0_aarch64.dmg"
+              href="https://github.com/aryabyte21/conductor/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-[#A1A1AA] underline underline-offset-2 transition-colors hover:text-[#FAFAFA]"
             >
               Apple Silicon (M1+)
             </a>
             <span className="text-[#3F3F46]">&middot;</span>
             <a
-              href="https://github.com/aryabyte21/conductor/releases/latest/download/Conductor_1.0.0_x86_64.dmg"
+              href="https://github.com/aryabyte21/conductor/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-[#A1A1AA] underline underline-offset-2 transition-colors hover:text-[#FAFAFA]"
             >
               Intel
@@ -81,7 +85,7 @@ export function Download() {
           </div>
 
           <p className="mt-3 text-sm text-[#71717A]">
-            v1.0.0 &middot; macOS 10.15+ &middot; Free &amp; open source
+            macOS 10.15+ &middot; Free &amp; open source
           </p>
 
           {/* macOS unsigned note */}

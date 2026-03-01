@@ -151,6 +151,11 @@ fn read_icon_from_plist(bundle: &PathBuf, resources: &PathBuf) -> Option<PathBuf
 
 /// Convert an .icns file to a base64-encoded PNG data URI
 fn convert_icns_to_base64(icns_path: &PathBuf, client_id: &str) -> Option<String> {
+    // Validate client_id to prevent path traversal (e.g. "../../etc/passwd")
+    if !client_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+        return None;
+    }
+
     let tmp_dir = std::env::temp_dir();
     let tmp_png = tmp_dir.join(format!("conductor_icon_{}.png", client_id));
 

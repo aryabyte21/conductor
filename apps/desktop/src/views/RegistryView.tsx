@@ -11,6 +11,13 @@ import {
   X,
   Plus,
   Trash2,
+  Sparkles,
+  Globe,
+  Code,
+  Database,
+  MessageSquare,
+  FolderOpen,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as tauri from "@/lib/tauri";
@@ -18,6 +25,18 @@ import { useConfigStore } from "@/stores/configStore";
 import { ServerLogo } from "@/components/ServerLogo";
 import type { RegistryServer } from "@conductor/types";
 import { toast } from "sonner";
+
+// ── Categories (curated client-side, Smithery API has no categories) ─
+
+const categories = [
+  { id: "all", label: "All", icon: Sparkles, query: null },
+  { id: "search", label: "Search & Web", icon: Globe, query: "search web browser" },
+  { id: "devtools", label: "Dev Tools", icon: Code, query: "github git code developer" },
+  { id: "databases", label: "Databases", icon: Database, query: "database sql postgres" },
+  { id: "communication", label: "Communication", icon: MessageSquare, query: "slack discord email" },
+  { id: "files", label: "Files & Storage", icon: FolderOpen, query: "file filesystem storage" },
+  { id: "ai", label: "AI & ML", icon: Brain, query: "ai model llm machine learning" },
+] as const;
 
 // ── Install Dialog ──────────────────────────────────────────────────
 
@@ -86,7 +105,7 @@ function InstallDialog({
             <ServerLogo
               name={server.qualifiedName || server.displayName}
               iconUrl={server.iconUrl}
-              size={40}
+              size={48}
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -276,7 +295,7 @@ function RegistryCard({
       <ServerLogo
         name={server.qualifiedName || server.displayName}
         iconUrl={server.iconUrl}
-        size={40}
+        size={52}
       />
 
       <div className="flex-1 min-w-0">
@@ -345,7 +364,7 @@ function RegistrySkeleton() {
           key={i}
           className="flex items-start gap-4 p-4 rounded-xl border border-border bg-surface-2 animate-pulse"
         >
-          <div className="w-10 h-10 rounded-full bg-surface-3" />
+          <div className="w-[52px] h-[52px] rounded-xl bg-surface-3" />
           <div className="flex-1 space-y-2">
             <div className="h-4 w-1/3 rounded bg-surface-3" />
             <div className="h-3 w-1/4 rounded bg-surface-3" />
@@ -368,6 +387,7 @@ export function RegistryView() {
   const [loadingPopular, setLoadingPopular] = useState(true);
   const [hasSearched, setHasSearched] = useState(false);
   const [installTarget, setInstallTarget] = useState<RegistryServer | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -444,6 +464,43 @@ export function RegistryView() {
     setQuery("");
     setResults([]);
     setHasSearched(false);
+    setActiveCategory("all");
+    inputRef.current?.focus();
+  };
+
+  // Category click handler
+  const handleCategoryClick = (cat: typeof categories[number]) => {
+    setActiveCategory(cat.id);
+    if (!cat.query) {
+      // "All" — reset to popular view
+      setQuery("");
+      setResults([]);
+      setHasSearched(false);
+    } else {
+      // Run the category's predefined search
+      setQuery("");
+      setHasSearched(true);
+      setLoading(true);
+      const id = ++searchIdRef.current;
+      tauri.searchRegistry(cat.query)
+        .then((servers) => {
+          if (id === searchIdRef.current) {
+            setResults(servers);
+          }
+        })
+        .catch((err) => {
+          if (id === searchIdRef.current) {
+            const message = err instanceof Error ? err.message : String(err);
+            toast.error("Search failed", { description: message });
+            setResults([]);
+          }
+        })
+        .finally(() => {
+          if (id === searchIdRef.current) {
+            setLoading(false);
+          }
+        });
+    }
     inputRef.current?.focus();
   };
 
@@ -468,7 +525,10 @@ export function RegistryView() {
             type="text"
             placeholder="Search MCP servers (e.g. filesystem, github, slack...)"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              if (e.target.value.trim()) setActiveCategory("all");
+            }}
             className="w-full h-11 pl-10 pr-10 rounded-xl bg-surface-3 border border-border text-text-primary text-sm
               placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50
               transition-shadow"
@@ -484,6 +544,29 @@ export function RegistryView() {
           {loading && (
             <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted animate-spin" />
           )}
+        </div>
+
+        {/* Category pills */}
+        <div className="flex gap-1.5 mt-3 overflow-x-auto pb-0.5 scrollbar-none">
+          {categories.map((cat) => {
+            const Icon = cat.icon;
+            const isActive = activeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => handleCategoryClick(cat)}
+                className={cn(
+                  "flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0",
+                  isActive
+                    ? "bg-accent text-white"
+                    : "bg-surface-3 text-text-muted hover:text-text-secondary hover:bg-surface-3/80"
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {cat.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -522,7 +605,7 @@ export function RegistryView() {
               </p>
             </div>
           )
-        ) : results.length === 0 ? (
+        ) : results.length === 0 && !loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-16 h-16 rounded-2xl bg-surface-3 flex items-center justify-center mb-4">
               <Search className="w-8 h-8 text-text-muted" />
@@ -536,8 +619,10 @@ export function RegistryView() {
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-text-muted mb-2">
-              {results.length} result{results.length !== 1 && "s"}
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
+              {activeCategory !== "all"
+                ? categories.find((c) => c.id === activeCategory)?.label ?? "Results"
+                : `${results.length} result${results.length !== 1 ? "s" : ""}`}
             </p>
             {results.map((server) => (
               <RegistryCard

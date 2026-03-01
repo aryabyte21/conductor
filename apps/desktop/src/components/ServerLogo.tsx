@@ -67,7 +67,7 @@ export function ServerLogo({
       <img
         src={resolvedUrl}
         alt={name}
-        className={`rounded-lg object-cover shrink-0 bg-white/10 ${className || ""}`}
+        className={`rounded-xl object-cover shrink-0 bg-white/10 ${className || ""}`}
         style={{ width: size, height: size }}
         onError={() => setImgError(true)}
       />
@@ -77,7 +77,7 @@ export function ServerLogo({
   // Letter avatar fallback
   return (
     <div
-      className={`flex items-center justify-center rounded-lg shrink-0 font-semibold text-white ${className || ""}`}
+      className={`flex items-center justify-center rounded-xl shrink-0 font-semibold text-white ${className || ""}`}
       style={{
         width: size,
         height: size,
