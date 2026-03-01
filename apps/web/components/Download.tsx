@@ -29,7 +29,7 @@ function DownloadCount() {
   );
 }
 
-const INSTALL_CMD = "curl -fsSL https://conductormcp.dev/install.sh | sh";
+const INSTALL_CMD = "curl -fsSL https://conductor-mcp.vercel.app/install.sh | sh";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -52,61 +52,11 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function InstallGuide() {
-  const [showManual, setShowManual] = useState(false);
-
-  return (
-    <div className="mx-auto mt-8 max-w-lg">
-      {/* Terminal install */}
-      <div className="rounded-lg border border-[#27272A] bg-[#111113] p-4">
-        <div className="mb-2 flex items-center gap-2 text-xs text-[#A1A1AA]">
-          <Terminal className="h-3.5 w-3.5 text-[#7C3AED]" />
-          Or install via terminal (recommended — handles everything automatically):
-        </div>
-        <div className="flex items-center gap-2 rounded-md bg-[#0A0A0B] px-3 py-2.5">
-          <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-xs text-[#FAFAFA]">
-            {INSTALL_CMD}
-          </code>
-          <CopyButton text={INSTALL_CMD} />
-        </div>
-        <p className="mt-2 text-[10px] text-[#52525B]">
-          Detects your chip, downloads the right DMG, installs to /Applications, and removes the quarantine flag.
-        </p>
-      </div>
-
-      {/* Manual fix toggle */}
-      <button
-        onClick={() => setShowManual(!showManual)}
-        className="mx-auto mt-4 flex items-center gap-1.5 text-xs text-[#52525B] transition-colors hover:text-[#A1A1AA]"
-      >
-        Downloaded the DMG manually and getting a &quot;damaged&quot; error?
-        {showManual ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-      </button>
-
-      {showManual && (
-        <div className="mt-3 rounded-lg border border-[#27272A] bg-[#111113] p-4 text-left text-sm">
-          <p className="mb-3 text-xs text-[#A1A1AA]">
-            This is normal for open-source apps without a $99/yr Apple Developer certificate.
-            After dragging the app to Applications, run:
-          </p>
-          <div className="flex items-center gap-2 rounded-md bg-[#0A0A0B] px-3 py-2">
-            <code className="flex-1 font-mono text-xs text-[#FAFAFA]">
-              xattr -cr /Applications/Conductor.app
-            </code>
-            <CopyButton text="xattr -cr /Applications/Conductor.app" />
-          </div>
-          <p className="mt-2 text-xs text-[#52525B]">
-            Then open the app normally. You only need to do this once.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function Download() {
   const [email, setEmail] = useState("");
-  const { arch, archLabel, release, dmgUrl, fallbackUrl } = useDownload();
+  const [showManual, setShowManual] = useState(false);
+  const { arch, archLabel, release, fallbackUrl } = useDownload();
 
   const [subscribeStatus, setSubscribeStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -166,33 +116,36 @@ export function Download() {
           Download Conductor and never copy-paste a config again.
         </p>
 
-        {/* Download buttons */}
-        <div className="mt-10">
-          <a
-            href={dmgUrl}
-            className="btn-primary inline-flex text-lg"
-          >
-            <Apple className="h-5 w-5" />
-            Download for macOS
-            {release.version && (
-              <span className="ml-1 text-sm opacity-70">{release.version}</span>
-            )}
-          </a>
-
-          {/* Detected arch badge */}
-          {arch && (
-            <p className="mt-2 text-xs text-[#7C3AED]">
-              Detected: {archLabel}
+        {/* Install command — primary */}
+        <div className="mx-auto mt-10 max-w-lg">
+          <div className="rounded-lg border border-[#27272A] bg-[#111113] p-4">
+            <div className="mb-2 flex items-center gap-2 text-xs text-[#A1A1AA]">
+              <Terminal className="h-3.5 w-3.5 text-[#7C3AED]" />
+              Install with one command (recommended):
+            </div>
+            <div className="flex items-center gap-2 rounded-md bg-[#0A0A0B] px-3 py-2.5">
+              <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-xs text-[#FAFAFA]">
+                {INSTALL_CMD}
+              </code>
+              <CopyButton text={INSTALL_CMD} />
+            </div>
+            <p className="mt-2 text-[10px] text-[#52525B]">
+              Detects your chip, downloads the right build, installs to /Applications, and handles macOS security automatically.
             </p>
-          )}
+          </div>
+        </div>
 
-          <div className="mt-3 flex items-center justify-center gap-3 text-sm">
+        {/* Manual DMG download — secondary */}
+        <div className="mt-6">
+          <p className="mb-3 text-sm text-[#71717A]">Or download the DMG manually:</p>
+          <div className="flex items-center justify-center gap-3 text-sm">
             <a
               href={release.arm64 ?? fallbackUrl}
               className={`underline underline-offset-2 transition-colors hover:text-[#FAFAFA] ${
                 arch === "arm64" || !arch ? "text-[#FAFAFA]" : "text-[#A1A1AA]"
               }`}
             >
+              <Apple className="mr-1 inline h-3.5 w-3.5" />
               Apple Silicon (M1+)
             </a>
             <span className="text-[#3F3F46]">&middot;</span>
@@ -206,13 +159,46 @@ export function Download() {
             </a>
           </div>
 
+          {arch && (
+            <p className="mt-2 text-xs text-[#7C3AED]">
+              Detected: {archLabel}
+              {release.version && <span className="ml-1 text-[#52525B]">({release.version})</span>}
+            </p>
+          )}
+
           <p className="mt-3 text-sm text-[#71717A]">
             macOS 10.15+ &middot; Free &amp; open source
             <DownloadCount />
           </p>
+        </div>
 
-          {/* Install guide + Gatekeeper fix */}
-          <InstallGuide />
+        {/* Gatekeeper fix for manual DMG users */}
+        <div className="mx-auto mt-4 max-w-lg">
+          <button
+            onClick={() => setShowManual(!showManual)}
+            className="mx-auto flex items-center gap-1.5 text-xs text-[#52525B] transition-colors hover:text-[#A1A1AA]"
+          >
+            Downloaded DMG and getting a &quot;damaged&quot; error?
+            {showManual ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </button>
+
+          {showManual && (
+            <div className="mt-3 rounded-lg border border-[#27272A] bg-[#111113] p-4 text-left text-sm">
+              <p className="mb-3 text-xs text-[#A1A1AA]">
+                Normal for open-source apps without a $99/yr Apple Developer certificate.
+                After dragging the app to Applications, run:
+              </p>
+              <div className="flex items-center gap-2 rounded-md bg-[#0A0A0B] px-3 py-2">
+                <code className="flex-1 font-mono text-xs text-[#FAFAFA]">
+                  xattr -cr /Applications/Conductor.app
+                </code>
+                <CopyButton text="xattr -cr /Applications/Conductor.app" />
+              </div>
+              <p className="mt-2 text-xs text-[#52525B]">
+                Then open the app normally. You only need to do this once.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Divider */}

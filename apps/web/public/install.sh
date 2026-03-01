@@ -1,6 +1,6 @@
 #!/bin/bash
 # Conductor Installer
-# Usage: curl -fsSL https://conductormcp.dev/install.sh | sh
+# Usage: curl -fsSL https://conductor-mcp.vercel.app/install.sh | sh
 #
 # Detects your Mac's architecture, downloads the correct DMG from
 # the latest GitHub release, installs to /Applications, and strips

@@ -198,7 +198,7 @@ function ClientCard({ client }: { client: ClientDetection }) {
       )}
 
       {/* Actions */}
-      <div className="flex gap-2 mt-auto pt-3 border-t border-border/50">
+      <div className="flex gap-2 mt-auto pt-3">
         <button
           onClick={handleImport}
           disabled={!client.detected || importing}

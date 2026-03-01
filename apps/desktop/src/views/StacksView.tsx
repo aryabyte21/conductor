@@ -394,7 +394,7 @@ function ImportStackDialog({
                   setPreview(null);
                   setError(null);
                 }}
-                placeholder={'Paste stack JSON or a URL like https://conductor.dev/stacks/...'}
+                placeholder={'Paste stack JSON or a URL like https://conductor-mcp.vercel.app/stacks/...'}
                 rows={5}
                 className="w-full px-3 py-2 rounded-lg bg-surface-3 border border-border text-text-primary text-sm font-mono
                   placeholder:text-text-muted outline-none focus:ring-1 focus:ring-accent/50 resize-none"
@@ -538,7 +538,7 @@ function ExportedStackCard({
     const binStr = Array.from(bytes, (b) => String.fromCodePoint(b)).join("");
     const encoded = btoa(binStr);
 
-    const shareUrl = `https://conductormcp.dev/share#${encoded}`;
+    const shareUrl = `https://conductor-mcp.vercel.app/share#${encoded}`;
     if (shareUrl.length > 32000) {
       toast.warning("Stack too large for share link", {
         description: "Use \"Copy JSON\" to share this stack instead.",

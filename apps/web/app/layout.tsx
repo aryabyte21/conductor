@@ -33,11 +33,11 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Conductor" }],
   creator: "Conductor",
-  metadataBase: new URL("https://conductor.dev"),
+  metadataBase: new URL("https://conductor-mcp.vercel.app"),
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://conductor.dev",
+    url: "https://conductor-mcp.vercel.app",
     siteName: "Conductor",
     title: "Conductor — MCP Config Manager for AI Developers",
     description:

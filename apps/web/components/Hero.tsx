@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowRight, Apple, Shield, Globe, Scale, Download } from "lucide-react";
+import { ArrowRight, Apple, Shield, Globe, Scale, Download, Terminal, Copy, Check } from "lucide-react";
 import { useDownload } from "@/lib/use-download";
+
+const INSTALL_CMD = "curl -fsSL https://conductor-mcp.vercel.app/install.sh | sh";
 
 function DownloadStat() {
   const [count, setCount] = useState<string | null>(null);
@@ -23,6 +25,32 @@ function DownloadStat() {
       <Download className="h-3.5 w-3.5" />
       {count} downloads
     </span>
+  );
+}
+
+function HeroCopyBlock() {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(INSTALL_CMD).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-[#0A0A0B] px-4 py-3">
+      <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-sm text-[#FAFAFA]">
+        {INSTALL_CMD}
+      </code>
+      <button
+        onClick={handleCopy}
+        className="shrink-0 rounded p-1.5 text-[#71717A] transition-colors hover:bg-[#27272A] hover:text-[#FAFAFA]"
+        aria-label="Copy to clipboard"
+      >
+        {copied ? <Check className="h-4 w-4 text-[#10B981]" /> : <Copy className="h-4 w-4" />}
+      </button>
+    </div>
   );
 }
 
@@ -230,17 +258,28 @@ export function Hero() {
           and every new AI tool. Conductor keeps them all in sync, automatically.
         </p>
 
-        {/* CTAs */}
-        <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a href={downloadHref} className="btn-primary text-base">
-            <Apple className="h-5 w-5" />
-            Download for macOS
+        {/* Install command — primary CTA */}
+        <div className="mx-auto mt-10 max-w-xl">
+          <div className="rounded-xl border border-[#27272A] bg-[#111113] p-4">
+            <div className="mb-2 flex items-center gap-2 text-xs text-[#A1A1AA]">
+              <Terminal className="h-3.5 w-3.5 text-[#7C3AED]" />
+              Install with one command:
+            </div>
+            <HeroCopyBlock />
+          </div>
+        </div>
+
+        {/* Secondary CTAs */}
+        <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <a href={downloadHref} className="btn-secondary text-sm">
+            <Apple className="h-4 w-4" />
+            Or download DMG directly
           </a>
           <a
             href="https://github.com/aryabyte21/conductor"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-secondary text-base"
+            className="btn-secondary text-sm"
           >
             View on GitHub
             <ArrowRight className="h-4 w-4" />
