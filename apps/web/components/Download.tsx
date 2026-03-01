@@ -123,14 +123,16 @@ export function Download() {
               <Terminal className="h-3.5 w-3.5 text-[#7C3AED]" />
               Install with one command (recommended):
             </div>
-            <div className="flex items-center gap-2 rounded-md bg-[#0A0A0B] px-3 py-2.5">
-              <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-xs text-[#FAFAFA]">
+            <div className="flex items-start gap-2 rounded-md bg-[#0A0A0B] px-3 py-2.5">
+              <code className="min-w-0 flex-1 break-all font-mono text-xs leading-relaxed text-[#FAFAFA]">
                 {INSTALL_CMD}
               </code>
               <CopyButton text={INSTALL_CMD} />
             </div>
-            <p className="mt-2 text-[10px] text-[#52525B]">
-              Detects your chip, downloads the right build, installs to /Applications, and handles macOS security automatically.
+            <p className="mt-2.5 text-[11px] leading-relaxed text-[#52525B]">
+              Open Terminal and paste this command. It auto-detects your chip (Apple Silicon / Intel),
+              downloads the latest version, installs to /Applications, and removes the macOS quarantine
+              flag so the app opens without any &ldquo;damaged&rdquo; errors.
             </p>
           </div>
         </div>

@@ -39,18 +39,25 @@ function HeroCopyBlock() {
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-[#0A0A0B] px-4 py-3">
-      <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-sm text-[#FAFAFA]">
-        {INSTALL_CMD}
-      </code>
-      <button
-        onClick={handleCopy}
-        className="shrink-0 rounded p-1.5 text-[#71717A] transition-colors hover:bg-[#27272A] hover:text-[#FAFAFA]"
-        aria-label="Copy to clipboard"
-      >
-        {copied ? <Check className="h-4 w-4 text-[#10B981]" /> : <Copy className="h-4 w-4" />}
-      </button>
-    </div>
+    <>
+      <div className="flex items-start gap-2 rounded-lg bg-[#0A0A0B] px-4 py-3">
+        <code className="min-w-0 flex-1 break-all font-mono text-sm leading-relaxed text-[#FAFAFA]">
+          {INSTALL_CMD}
+        </code>
+        <button
+          onClick={handleCopy}
+          className="mt-0.5 shrink-0 rounded p-1.5 text-[#71717A] transition-colors hover:bg-[#27272A] hover:text-[#FAFAFA]"
+          aria-label="Copy to clipboard"
+        >
+          {copied ? <Check className="h-4 w-4 text-[#10B981]" /> : <Copy className="h-4 w-4" />}
+        </button>
+      </div>
+      <p className="mt-2.5 text-xs leading-relaxed text-[#71717A]">
+        Open Terminal and paste this command. It auto-detects your chip (Apple Silicon or Intel),
+        downloads the latest version, installs to /Applications, and removes the macOS quarantine
+        flag so the app opens without any &ldquo;damaged&rdquo; errors.
+      </p>
+    </>
   );
 }
 
