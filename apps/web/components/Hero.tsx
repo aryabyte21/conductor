@@ -40,13 +40,13 @@ function HeroCopyBlock() {
 
   return (
     <>
-      <div className="flex items-start gap-2 rounded-lg bg-[#0A0A0B] px-4 py-3">
-        <code className="min-w-0 flex-1 break-all font-mono text-sm leading-relaxed text-[#FAFAFA]">
+      <div className="flex items-center gap-3 rounded-lg bg-[#0A0A0B] px-4 py-3.5">
+        <code className="min-w-0 flex-1 whitespace-nowrap overflow-x-auto font-mono text-sm text-[#FAFAFA]">
           {INSTALL_CMD}
         </code>
         <button
           onClick={handleCopy}
-          className="mt-0.5 shrink-0 rounded p-1.5 text-[#71717A] transition-colors hover:bg-[#27272A] hover:text-[#FAFAFA]"
+          className="shrink-0 rounded p-1.5 text-[#71717A] transition-colors hover:bg-[#27272A] hover:text-[#FAFAFA]"
           aria-label="Copy to clipboard"
         >
           {copied ? <Check className="h-4 w-4 text-[#10B981]" /> : <Copy className="h-4 w-4" />}

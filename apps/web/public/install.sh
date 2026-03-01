@@ -20,13 +20,13 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-info()  { echo -e "${BLUE}${BOLD}==>${NC} ${BOLD}$1${NC}"; }
-ok()    { echo -e "${GREEN}${BOLD}==>${NC} ${BOLD}$1${NC}"; }
-warn()  { echo -e "${YELLOW}${BOLD}==>${NC} ${BOLD}$1${NC}"; }
-fail()  { echo -e "${RED}${BOLD}ERROR:${NC} $1"; exit 1; }
+info()  { printf "${BLUE}${BOLD}==>${NC} ${BOLD}%s${NC}\n" "$1"; }
+ok()    { printf "${GREEN}${BOLD}==>${NC} ${BOLD}%s${NC}\n" "$1"; }
+warn()  { printf "${YELLOW}${BOLD}==>${NC} ${BOLD}%s${NC}\n" "$1"; }
+fail()  { printf "${RED}${BOLD}ERROR:${NC} %s\n" "$1"; exit 1; }
 
 # ── Check platform ──────────────────────────────────────────────
-[[ "$(uname)" == "Darwin" ]] || fail "This installer only supports macOS."
+[ "$(uname)" = "Darwin" ] || fail "This installer only supports macOS."
 
 # ── Detect architecture ─────────────────────────────────────────
 ARCH="$(uname -m)"
@@ -45,7 +45,7 @@ RELEASE_JSON=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest"
   || fail "Could not reach GitHub API. Check your internet connection."
 
 TAG=$(echo "$RELEASE_JSON" | grep '"tag_name"' | head -1 | sed 's/.*: *"\(.*\)".*/\1/')
-[[ -n "$TAG" ]] || fail "Could not determine latest version."
+[ -n "$TAG" ] || fail "Could not determine latest version."
 
 info "Latest version: $TAG"
 
@@ -57,7 +57,7 @@ DMG_URL=$(echo "$RELEASE_JSON" \
   | head -1 \
   | sed 's/.*: *"\(.*\)".*/\1/')
 
-[[ -n "$DMG_URL" ]] || fail "No DMG found for $ARCH in release $TAG."
+[ -n "$DMG_URL" ] || fail "No DMG found for $ARCH in release $TAG."
 
 DMG_NAME=$(basename "$DMG_URL")
 TMP_DIR=$(mktemp -d)
@@ -72,21 +72,29 @@ curl -fSL --progress-bar -o "$DMG_PATH" "$DMG_URL" \
 # ── Mount & Install ─────────────────────────────────────────────
 info "Installing to $INSTALL_DIR..."
 
-MOUNT_POINT=$(hdiutil attach -nobrowse -quiet "$DMG_PATH" | tail -1 | awk '{print $NF}')
+# Mount DMG — no -quiet so we can parse the mount point from output
+MOUNT_OUTPUT=$(hdiutil attach -nobrowse -noverify "$DMG_PATH" 2>&1)
 
-if [[ -z "$MOUNT_POINT" ]]; then
-  # Fallback: extract mount point differently
-  MOUNT_POINT=$(hdiutil attach -nobrowse -quiet "$DMG_PATH" 2>&1 | grep '/Volumes/' | sed 's/.*\(\/Volumes\/.*\)/\1/' | head -1)
+if [ $? -ne 0 ]; then
+  fail "Failed to mount DMG."
 fi
 
-[[ -d "$MOUNT_POINT" ]] || fail "Failed to mount DMG."
+# Extract mount point: last tab-separated field of the /Volumes/ line
+MOUNT_POINT=$(echo "$MOUNT_OUTPUT" | awk -F'\t' '/\/Volumes\// { gsub(/^[[:space:]]+|[[:space:]]+$/, "", $NF); print $NF }' | head -1)
+
+# Fallback: try grep if awk didn't match
+if [ -z "$MOUNT_POINT" ]; then
+  MOUNT_POINT=$(echo "$MOUNT_OUTPUT" | grep -o '/Volumes/.*' | head -1 | sed 's/[[:space:]]*$//')
+fi
+
+[ -d "$MOUNT_POINT" ] || fail "Failed to find mount point."
 
 # Find the .app inside the mounted DMG
 APP_SOURCE=$(find "$MOUNT_POINT" -maxdepth 1 -name "*.app" -type d | head -1)
-[[ -d "$APP_SOURCE" ]] || fail "No .app found in DMG."
+[ -d "$APP_SOURCE" ] || fail "No .app found in DMG."
 
 # Remove old version if it exists
-if [[ -d "$INSTALL_DIR/$APP_NAME" ]]; then
+if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
   warn "Removing previous installation..."
   rm -rf "$INSTALL_DIR/$APP_NAME"
 fi
@@ -96,7 +104,7 @@ cp -R "$APP_SOURCE" "$INSTALL_DIR/$APP_NAME"
 
 # ── Strip quarantine ────────────────────────────────────────────
 info "Removing macOS quarantine flag..."
-xattr -cr "$INSTALL_DIR/$APP_NAME" 2>/dev/null || true
+find "$INSTALL_DIR/$APP_NAME" -exec xattr -d com.apple.quarantine {} + 2>/dev/null || true
 
 # ── Cleanup ─────────────────────────────────────────────────────
 hdiutil detach "$MOUNT_POINT" -quiet 2>/dev/null || true
@@ -106,6 +114,6 @@ rm -rf "$TMP_DIR"
 echo ""
 ok "Conductor $TAG installed successfully!"
 echo ""
-echo -e "   Open it from ${BOLD}Applications${NC} or run:"
-echo -e "   ${BLUE}open /Applications/Conductor.app${NC}"
+printf "   Open it from ${BOLD}Applications${NC} or run:\n"
+printf "   ${BLUE}open /Applications/Conductor.app${NC}\n"
 echo ""

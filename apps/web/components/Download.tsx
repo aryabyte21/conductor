@@ -117,19 +117,19 @@ export function Download() {
         </p>
 
         {/* Install command — primary */}
-        <div className="mx-auto mt-10 max-w-lg">
-          <div className="rounded-lg border border-[#27272A] bg-[#111113] p-4">
-            <div className="mb-2 flex items-center gap-2 text-xs text-[#A1A1AA]">
-              <Terminal className="h-3.5 w-3.5 text-[#7C3AED]" />
-              Install with one command (recommended):
+        <div className="mx-auto mt-10 max-w-2xl">
+          <div className="rounded-xl border border-[#27272A] bg-[#111113] p-5">
+            <div className="mb-3 flex items-center gap-2 text-sm text-[#A1A1AA]">
+              <Terminal className="h-4 w-4 text-[#7C3AED]" />
+              Install with one command:
             </div>
-            <div className="flex items-start gap-2 rounded-md bg-[#0A0A0B] px-3 py-2.5">
-              <code className="min-w-0 flex-1 break-all font-mono text-xs leading-relaxed text-[#FAFAFA]">
+            <div className="flex items-center gap-3 rounded-lg bg-[#0A0A0B] px-4 py-3.5">
+              <code className="min-w-0 flex-1 whitespace-nowrap overflow-x-auto font-mono text-sm text-[#FAFAFA]">
                 {INSTALL_CMD}
               </code>
               <CopyButton text={INSTALL_CMD} />
             </div>
-            <p className="mt-2.5 text-[11px] leading-relaxed text-[#52525B]">
+            <p className="mt-3 text-left text-xs leading-relaxed text-[#71717A]">
               Open Terminal and paste this command. It auto-detects your chip (Apple Silicon / Intel),
               downloads the latest version, installs to /Applications, and removes the macOS quarantine
               flag so the app opens without any &ldquo;damaged&rdquo; errors.
@@ -192,9 +192,9 @@ export function Download() {
               </p>
               <div className="flex items-center gap-2 rounded-md bg-[#0A0A0B] px-3 py-2">
                 <code className="flex-1 font-mono text-xs text-[#FAFAFA]">
-                  xattr -cr /Applications/Conductor.app
+                  xattr -d com.apple.quarantine /Applications/Conductor.app
                 </code>
-                <CopyButton text="xattr -cr /Applications/Conductor.app" />
+                <CopyButton text="xattr -d com.apple.quarantine /Applications/Conductor.app" />
               </div>
               <p className="mt-2 text-xs text-[#52525B]">
                 Then open the app normally. You only need to do this once.
