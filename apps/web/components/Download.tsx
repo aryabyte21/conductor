@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Apple, Mail, Loader2, Download as DownloadIcon, Terminal, ChevronDown, ChevronUp } from "lucide-react";
+import { Apple, Mail, Loader2, Download as DownloadIcon, Terminal, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
 import { useDownload } from "@/lib/use-download";
 
 function DownloadCount() {
@@ -29,44 +29,75 @@ function DownloadCount() {
   );
 }
 
-function GatekeeperGuide() {
-  const [open, setOpen] = useState(false);
+const INSTALL_CMD = "curl -fsSL https://conductormcp.dev/install.sh | sh";
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   return (
-    <div className="mx-auto mt-6 max-w-lg">
+    <button
+      onClick={handleCopy}
+      className="shrink-0 rounded p-1 text-[#71717A] transition-colors hover:bg-[#27272A] hover:text-[#FAFAFA]"
+      aria-label="Copy to clipboard"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-[#10B981]" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
+function InstallGuide() {
+  const [showManual, setShowManual] = useState(false);
+
+  return (
+    <div className="mx-auto mt-8 max-w-lg">
+      {/* Terminal install */}
+      <div className="rounded-lg border border-[#27272A] bg-[#111113] p-4">
+        <div className="mb-2 flex items-center gap-2 text-xs text-[#A1A1AA]">
+          <Terminal className="h-3.5 w-3.5 text-[#7C3AED]" />
+          Or install via terminal (recommended — handles everything automatically):
+        </div>
+        <div className="flex items-center gap-2 rounded-md bg-[#0A0A0B] px-3 py-2.5">
+          <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-xs text-[#FAFAFA]">
+            {INSTALL_CMD}
+          </code>
+          <CopyButton text={INSTALL_CMD} />
+        </div>
+        <p className="mt-2 text-[10px] text-[#52525B]">
+          Detects your chip, downloads the right DMG, installs to /Applications, and removes the quarantine flag.
+        </p>
+      </div>
+
+      {/* Manual fix toggle */}
       <button
-        onClick={() => setOpen(!open)}
-        className="mx-auto flex items-center gap-1.5 text-xs text-[#71717A] transition-colors hover:text-[#A1A1AA]"
+        onClick={() => setShowManual(!showManual)}
+        className="mx-auto mt-4 flex items-center gap-1.5 text-xs text-[#52525B] transition-colors hover:text-[#A1A1AA]"
       >
-        <Terminal className="h-3 w-3" />
-        macOS says &quot;damaged&quot; or &quot;can&apos;t be opened&quot;?
-        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        Downloaded the DMG manually and getting a &quot;damaged&quot; error?
+        {showManual ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
       </button>
 
-      {open && (
+      {showManual && (
         <div className="mt-3 rounded-lg border border-[#27272A] bg-[#111113] p-4 text-left text-sm">
-          <p className="mb-3 text-[#A1A1AA]">
-            This happens because Conductor isn&apos;t signed with an Apple Developer certificate yet (it&apos;s $99/year).
-            Totally normal for open-source apps. Here&apos;s the fix:
+          <p className="mb-3 text-xs text-[#A1A1AA]">
+            This is normal for open-source apps without a $99/yr Apple Developer certificate.
+            After dragging the app to Applications, run:
           </p>
-
-          <div className="mb-3">
-            <p className="mb-1.5 text-xs font-medium text-[#FAFAFA]">After mounting the DMG and dragging to Applications:</p>
-            <div className="rounded-md bg-[#0A0A0B] px-3 py-2 font-mono text-xs text-[#A1A1AA]">
-              <span className="select-none text-[#52525B]">$ </span>
-              <span className="text-[#FAFAFA]">xattr -cr /Applications/Conductor.app</span>
-            </div>
+          <div className="flex items-center gap-2 rounded-md bg-[#0A0A0B] px-3 py-2">
+            <code className="flex-1 font-mono text-xs text-[#FAFAFA]">
+              xattr -cr /Applications/Conductor.app
+            </code>
+            <CopyButton text="xattr -cr /Applications/Conductor.app" />
           </div>
-
-          <p className="mb-3 text-[#A1A1AA]">
-            Then double-click the app as normal. This removes the macOS quarantine flag — you only need to do it once.
+          <p className="mt-2 text-xs text-[#52525B]">
+            Then open the app normally. You only need to do this once.
           </p>
-
-          <div className="rounded-md border border-[#27272A]/50 bg-[#18181B] px-3 py-2 text-xs text-[#71717A]">
-            <span className="text-[#A1A1AA]">What does this do?</span>{" "}
-            <code className="text-[#8B5CF6]">xattr -cr</code> removes the extended attribute macOS adds to files downloaded from the internet.
-            It&apos;s the same thing that happens when you sign an app with an Apple certificate — it just tells macOS &quot;this is safe to open&quot;.
-          </div>
         </div>
       )}
     </div>
@@ -180,8 +211,8 @@ export function Download() {
             <DownloadCount />
           </p>
 
-          {/* Gatekeeper fix guide */}
-          <GatekeeperGuide />
+          {/* Install guide + Gatekeeper fix */}
+          <InstallGuide />
         </div>
 
         {/* Divider */}
