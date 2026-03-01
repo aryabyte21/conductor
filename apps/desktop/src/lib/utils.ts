@@ -11,6 +11,22 @@ export function formatRelativeTime(dateStr?: string | null): string {
   if (isNaN(date.getTime())) return "-";
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
+
+  // Handle future dates (e.g., OAuth token expiry)
+  if (diffMs < 0) {
+    const absDiffMs = Math.abs(diffMs);
+    const futureSecs = Math.floor(absDiffMs / 1000);
+    const futureMins = Math.floor(futureSecs / 60);
+    const futureHours = Math.floor(futureMins / 60);
+    const futureDays = Math.floor(futureHours / 24);
+
+    if (futureSecs < 60) return "in a moment";
+    if (futureMins < 60) return `in ${futureMins}m`;
+    if (futureHours < 24) return `in ${futureHours}h`;
+    if (futureDays < 7) return `in ${futureDays}d`;
+    return date.toLocaleDateString();
+  }
+
   const diffSecs = Math.floor(diffMs / 1000);
   const diffMins = Math.floor(diffSecs / 60);
   const diffHours = Math.floor(diffMins / 60);

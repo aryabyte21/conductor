@@ -81,7 +81,7 @@ export function Problem() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#7C3AED]">
+          <p className="text-base font-semibold uppercase tracking-wider text-[#7C3AED]">
             The Problem
           </p>
           <h2 className="section-heading mt-3">Sound familiar?</h2>
@@ -99,10 +99,10 @@ export function Problem() {
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-[#7C3AED]/10">
                 <point.icon className="h-5 w-5 text-[#7C3AED]" />
               </div>
-              <h3 className="text-lg font-semibold text-[#FAFAFA]">
+              <h3 className="text-xl font-semibold text-[#FAFAFA]">
                 {point.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#A1A1AA]">
+              <p className="mt-2 text-base leading-relaxed text-[#A1A1AA]">
                 {point.description}
               </p>
               {point.visual}

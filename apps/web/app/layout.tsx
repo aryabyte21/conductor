@@ -14,6 +14,10 @@ export const metadata: Metadata = {
   title: "Conductor — MCP Config Manager for AI Developers",
   description:
     "Configure your MCP servers once, use them everywhere. Conductor is the open-source config manager that syncs your Model Context Protocol servers across Claude Desktop, Cursor, VS Code, Windsurf, and more.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
   keywords: [
     "MCP",
     "Model Context Protocol",

@@ -253,7 +253,7 @@ export function Features() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#7C3AED]">
+          <p className="text-base font-semibold uppercase tracking-wider text-[#7C3AED]">
             Features
           </p>
           <h2 className="section-heading mt-3">
@@ -277,21 +277,21 @@ export function Features() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7C3AED]/10">
                     <feature.icon className="h-4 w-4 text-[#7C3AED]" />
                   </div>
-                  <span className="rounded-full bg-[#7C3AED]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#7C3AED]">
+                  <span className="rounded-full bg-[#7C3AED]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#7C3AED]">
                     {feature.label}
                   </span>
                 </div>
-                <h3 className="mt-3 text-2xl font-bold text-[#FAFAFA] sm:text-3xl">
+                <h3 className="mt-3 text-2xl font-bold text-[#FAFAFA] sm:text-3xl lg:text-4xl">
                   {feature.title}
                 </h3>
-                <p className="mt-4 leading-relaxed text-[#A1A1AA]">
+                <p className="mt-4 text-base leading-relaxed text-[#A1A1AA] sm:text-lg">
                   {feature.description}
                 </p>
                 <ul className="mt-6 space-y-3">
                   {feature.highlights.map((highlight) => (
                     <li
                       key={highlight}
-                      className="flex items-center gap-3 text-sm text-[#A1A1AA]"
+                      className="flex items-center gap-3 text-base text-[#A1A1AA]"
                     >
                       <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#7C3AED]/10">
                         <div className="h-1.5 w-1.5 rounded-full bg-[#7C3AED]" />

@@ -21,6 +21,26 @@
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/servers.png" width="800" alt="Server Management — Add, edit, and toggle MCP servers" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/clients.png" width="800" alt="Client Sync — Push configs to all your AI tools at once" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/registry.png" width="800" alt="Registry — Browse and install from 7,300+ MCP servers" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/stacks.png" width="800" alt="Stacks — Bundle servers into shareable collections" />
+</p>
+
+---
+
 ## Why Conductor?
 
 Every AI coding tool has its own config file format for MCP servers. Add a new server? Edit 5 different JSON/TOML/XML files. Change an API key? Do it again. Conductor fixes this.

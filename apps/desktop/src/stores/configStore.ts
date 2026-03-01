@@ -91,7 +91,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   },
 
   toggleServer: async (serverId, enabled) => {
-    const prev = get().servers;
+    // Capture the previous value for this specific server to avoid
+    // stale-snapshot issues when multiple toggles fire concurrently.
+    const prevServer = get().servers.find((s) => s.id === serverId);
     // Optimistic update
     set((state) => ({
       servers: state.servers.map((s) =>
@@ -105,8 +107,14 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       }));
       window.__conductorAutoSync?.();
     } catch (err) {
-      // Roll back
-      set({ servers: prev });
+      // Roll back only this specific server's state
+      if (prevServer) {
+        set((state) => ({
+          servers: state.servers.map((s) =>
+            s.id === serverId ? prevServer : s
+          ),
+        }));
+      }
       const message = err instanceof Error ? err.message : String(err);
       toast.error("Failed to toggle server", { description: message });
     }

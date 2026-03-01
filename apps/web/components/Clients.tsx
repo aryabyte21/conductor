@@ -105,7 +105,7 @@ export function Clients() {
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#7C3AED]">
+          <p className="text-base font-semibold uppercase tracking-wider text-[#7C3AED]">
             Compatibility
           </p>
           <h2 className="section-heading mt-3">
@@ -117,14 +117,14 @@ export function Clients() {
           </p>
         </div>
 
-        <div className="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        <div className="mt-16 grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4">
           {clients.map((client) => (
             <div
               key={client.name}
-              className="card group flex flex-col items-center p-6 text-center"
+              className="card group flex flex-col items-center p-6 sm:p-8 text-center"
             >
               <div
-                className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl transition-transform group-hover:scale-110"
+                className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl transition-transform group-hover:scale-110"
                 style={{
                   backgroundColor: client.color + "12",
                 }}
@@ -133,23 +133,23 @@ export function Clients() {
                   <img
                     src={client.logo}
                     alt={client.name}
-                    className={`h-8 w-8 object-contain${client.invert ? " invert" : ""}`}
+                    className={`h-12 w-12 rounded-lg object-contain${client.invert ? " invert" : ""}`}
                   />
                 ) : client.Logo ? (
-                  <client.Logo className="h-8 w-8" />
+                  <client.Logo className="h-12 w-12" />
                 ) : null}
               </div>
 
-              <h3 className="text-sm font-semibold text-[#FAFAFA]">
+              <h3 className="text-base font-semibold text-[#FAFAFA]">
                 {client.name}
               </h3>
-              <p className="mt-0.5 text-xs text-[#71717A]">
+              <p className="mt-1 text-sm text-[#71717A]">
                 {client.description}
               </p>
 
               <div className="mt-3 flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981]" />
-                <span className="text-xs font-medium text-[#10B981]">
+                <CheckCircle2 className="h-4 w-4 text-[#10B981]" />
+                <span className="text-sm font-medium text-[#10B981]">
                   Supported
                 </span>
               </div>
@@ -158,7 +158,7 @@ export function Clients() {
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-sm text-[#71717A]">
+          <p className="text-base text-[#71717A]">
             <span className="font-medium text-[#A1A1AA]">More coming: </span>
             {upcoming.join(", ")}
           </p>

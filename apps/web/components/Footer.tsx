@@ -50,7 +50,7 @@ export function Footer() {
           {/* Links */}
           <div className="flex items-center gap-6">
             <a
-              href="https://github.com/nicholaschuayunzhi/conductor"
+              href="https://github.com/aryabyte21/conductor"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-[#71717A] transition-colors hover:text-[#FAFAFA]"
@@ -75,7 +75,7 @@ export function Footer() {
           <p className="text-xs text-[#71717A]">
             Released under the{" "}
             <a
-              href="https://github.com/nicholaschuayunzhi/conductor/blob/main/LICENSE"
+              href="https://github.com/aryabyte21/conductor/blob/main/LICENSE"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#A1A1AA] underline underline-offset-2 hover:text-[#FAFAFA]"

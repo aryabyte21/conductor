@@ -8,6 +8,9 @@ import {
   PackageSearch,
   BadgeCheck,
   Users,
+  X,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as tauri from "@/lib/tauri";
@@ -26,22 +29,31 @@ function InstallDialog({
   onClose: () => void;
 }) {
   const [envVars, setEnvVars] = useState<Record<string, string>>({});
+  const [newKey, setNewKey] = useState("");
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
   const fetchServers = useConfigStore((s) => s.fetchServers);
 
+  const addEnvVar = () => {
+    const key = newKey.trim().toUpperCase();
+    if (key && !(key in envVars)) {
+      setEnvVars((prev) => ({ ...prev, [key]: "" }));
+      setNewKey("");
+    }
+  };
+
   const handleInstall = async () => {
     setInstalling(true);
     try {
-      const installed = await tauri.installFromRegistry(server.id);
+      const result = await tauri.installFromRegistry(server.id);
 
       // If user provided env vars, update the server with them
       const nonEmptyEnvVars = Object.fromEntries(
         Object.entries(envVars).filter(([, v]) => v.trim() !== "")
       );
       if (Object.keys(nonEmptyEnvVars).length > 0) {
-        const existingEnv = installed.env || {};
-        await tauri.updateServer(installed.id, {
+        const existingEnv = result.env || {};
+        await tauri.updateServer(result.id, {
           env: { ...existingEnv, ...nonEmptyEnvVars },
           secretEnvKeys: Object.keys(nonEmptyEnvVars),
         });
@@ -66,7 +78,7 @@ function InstallDialog({
       />
       <div className="fixed inset-0 z-[91] flex items-center justify-center p-4">
         <div
-          className="w-full max-w-[440px] bg-surface-2 border border-border rounded-xl shadow-2xl overflow-hidden"
+          className="w-full max-w-[480px] bg-surface-2 border border-border rounded-xl shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -74,59 +86,54 @@ function InstallDialog({
             <ServerLogo
               name={server.qualifiedName || server.displayName}
               iconUrl={server.iconUrl}
-              size={36}
+              size={40}
             />
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-text-primary truncate">
-                Install {server.displayName}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-text-primary truncate">
+                  {server.displayName}
+                </h3>
+                {server.verified && (
+                  <BadgeCheck className="w-4 h-4 text-accent shrink-0" />
+                )}
+              </div>
               <p className="text-xs text-text-muted truncate">
                 {server.qualifiedName}
               </p>
             </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-surface-3 text-text-muted shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          <div className="px-6 py-4 space-y-4">
-            <p className="text-sm text-text-secondary">
+          <div className="px-6 py-4 space-y-4 max-h-[400px] overflow-y-auto">
+            <p className="text-sm text-text-secondary leading-relaxed">
               {server.description}
             </p>
 
-            {/* Env var inputs - shown as a hint for now */}
+            {/* Env var inputs */}
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5">
-                Environment Variables (optional)
+              <label className="block text-xs font-semibold text-text-secondary mb-1">
+                Environment Variables
               </label>
-              <p className="text-[11px] text-text-muted mb-2">
-                Some servers require API keys or tokens. Add them here.
+              <p className="text-[11px] text-text-muted mb-2.5">
+                Some servers require API keys. You can add them now or configure later in server settings.
               </p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="KEY"
-                  className="flex-1 h-8 px-2 rounded bg-surface-3 border border-border text-sm font-mono text-text-primary
-                    placeholder:text-text-muted outline-none focus:ring-1 focus:ring-accent/50"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      const input = e.currentTarget;
-                      const key = input.value.trim();
-                      if (key) {
-                        setEnvVars((prev) => ({ ...prev, [key]: "" }));
-                        input.value = "";
-                      }
-                    }
-                  }}
-                />
-              </div>
+
+              {/* Existing env vars */}
               {Object.keys(envVars).length > 0 && (
-                <div className="mt-2 space-y-1.5">
+                <div className="space-y-2 mb-3">
                   {Object.entries(envVars).map(([key]) => (
-                    <div key={key} className="flex gap-2">
-                      <span className="h-8 px-2 flex items-center rounded bg-surface-3 border border-border text-xs font-mono text-accent min-w-[100px]">
+                    <div key={key} className="flex gap-2 items-center">
+                      <span className="h-8 px-2.5 flex items-center rounded-lg bg-accent/10 border border-accent/20 text-xs font-mono text-accent min-w-[120px] shrink-0">
                         {key}
                       </span>
                       <input
                         type="password"
-                        placeholder="value"
+                        placeholder="Enter value..."
                         value={envVars[key]}
                         onChange={(e) =>
                           setEnvVars((prev) => ({
@@ -134,7 +141,7 @@ function InstallDialog({
                             [key]: e.target.value,
                           }))
                         }
-                        className="flex-1 h-8 px-2 rounded bg-surface-3 border border-border text-sm font-mono text-text-primary
+                        className="flex-1 h-8 px-2.5 rounded-lg bg-surface-3 border border-border text-sm font-mono text-text-primary
                           placeholder:text-text-muted outline-none focus:ring-1 focus:ring-accent/50"
                       />
                       <button
@@ -145,54 +152,100 @@ function InstallDialog({
                             return next;
                           })
                         }
-                        className="h-8 px-2 rounded hover:bg-surface-3 text-text-muted text-xs"
+                        className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-surface-3 text-text-muted shrink-0"
                       >
-                        Remove
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
                 </div>
               )}
+
+              {/* Add new env var */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. API_KEY"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addEnvVar();
+                    }
+                  }}
+                  className="flex-1 h-8 px-2.5 rounded-lg bg-surface-3 border border-border text-sm font-mono text-text-primary
+                    placeholder:text-text-muted outline-none focus:ring-1 focus:ring-accent/50"
+                />
+                <button
+                  onClick={addEnvVar}
+                  disabled={!newKey.trim()}
+                  className={cn(
+                    "flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-medium transition-colors",
+                    newKey.trim()
+                      ? "border border-border text-text-secondary hover:bg-surface-3"
+                      : "border border-border/50 text-text-muted cursor-not-allowed"
+                  )}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-border">
-            <button
-              onClick={onClose}
-              className="h-9 px-4 rounded-lg text-sm font-medium text-text-secondary hover:bg-surface-3"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleInstall}
-              disabled={installing || installed}
-              className={cn(
-                "flex items-center gap-1.5 h-9 px-5 rounded-lg text-sm font-medium transition-colors",
-                installed
-                  ? "bg-success text-white"
-                  : installing
-                    ? "bg-accent/60 text-white/60 cursor-wait"
-                    : "bg-accent text-white hover:bg-accent/90"
-              )}
-            >
-              {installed ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  Installed
-                </>
-              ) : installing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Installing...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Install
-                </>
-              )}
-            </button>
+          <div className="flex items-center justify-between px-6 py-3 border-t border-border">
+            {server.homepage ? (
+              <a
+                href={server.homepage}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-text-muted hover:text-accent transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Docs
+              </a>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                className="h-9 px-4 rounded-lg text-sm font-medium text-text-secondary hover:bg-surface-3"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleInstall}
+                disabled={installing || installed}
+                className={cn(
+                  "flex items-center gap-1.5 h-9 px-5 rounded-lg text-sm font-medium transition-colors",
+                  installed
+                    ? "bg-success text-white"
+                    : installing
+                      ? "bg-accent/60 text-white/60 cursor-wait"
+                      : "bg-accent text-white hover:bg-accent/90"
+                )}
+              >
+                {installed ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    Installed
+                  </>
+                ) : installing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Installing...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Install
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -204,13 +257,22 @@ function InstallDialog({
 
 function RegistryCard({
   server,
+  isInstalled,
   onInstall,
 }: {
   server: RegistryServer;
+  isInstalled: boolean;
   onInstall: () => void;
 }) {
   return (
-    <div className="flex items-start gap-4 p-4 rounded-xl border border-border bg-surface-2 hover:border-text-muted/30 transition-colors">
+    <div
+      className={cn(
+        "flex items-start gap-4 p-4 rounded-xl border transition-all",
+        isInstalled
+          ? "border-success/20 bg-success/5 hover:border-success/30"
+          : "border-border bg-surface-2 hover:border-text-muted/30"
+      )}
+    >
       <ServerLogo
         name={server.qualifiedName || server.displayName}
         iconUrl={server.iconUrl}
@@ -248,20 +310,27 @@ function RegistryCard({
               className="flex items-center gap-1 text-xs text-accent hover:text-accent/80"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              Homepage
+              Docs
             </a>
           )}
         </div>
       </div>
 
-      <button
-        onClick={onInstall}
-        className="shrink-0 flex items-center gap-1.5 h-8 px-4 rounded-lg bg-accent text-white text-xs font-medium
-          hover:bg-accent/90 transition-colors"
-      >
-        <Download className="w-3.5 h-3.5" />
-        Install
-      </button>
+      {isInstalled ? (
+        <span className="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-success border border-success/20">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Installed
+        </span>
+      ) : (
+        <button
+          onClick={onInstall}
+          className="shrink-0 flex items-center gap-1.5 h-8 px-4 rounded-lg bg-accent text-white text-xs font-medium
+            hover:bg-accent/90 transition-colors"
+        >
+          <Download className="w-3.5 h-3.5" />
+          Install
+        </button>
+      )}
     </div>
   );
 }
@@ -301,6 +370,17 @@ export function RegistryView() {
   const [installTarget, setInstallTarget] = useState<RegistryServer | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Track which servers are already installed
+  const servers = useConfigStore((s) => s.servers);
+  const installedRegistryIds = new Set(
+    servers.filter((s) => s.registryId).map((s) => s.registryId)
+  );
+  const installedNames = new Set(servers.map((s) => s.name));
+
+  const isServerInstalled = (server: RegistryServer) => {
+    return installedRegistryIds.has(server.id) || installedNames.has(server.qualifiedName);
+  };
 
   // Auto-focus search
   useEffect(() => {
@@ -359,25 +439,48 @@ export function RegistryView() {
     };
   }, [query, doSearch]);
 
+  // Clear search
+  const clearSearch = () => {
+    setQuery("");
+    setResults([]);
+    setHasSearched(false);
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Top bar */}
       <div className="shrink-0 px-6 py-5 border-b border-border">
-        <h1 className="text-xl font-bold text-text-primary mb-4">Registry</h1>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-xl font-bold text-text-primary">Registry</h1>
+            <p className="text-sm text-text-muted mt-0.5">
+              Discover and install MCP servers
+            </p>
+          </div>
+        </div>
 
         {/* Search bar */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-muted" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-muted pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
             placeholder="Search MCP servers (e.g. filesystem, github, slack...)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-xl bg-surface-3 border border-border text-text-primary text-sm
+            className="w-full h-11 pl-10 pr-10 rounded-xl bg-surface-3 border border-border text-text-primary text-sm
               placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50
               transition-shadow"
           />
+          {query && !loading && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-surface-2 text-text-muted"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
           {loading && (
             <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted animate-spin" />
           )}
@@ -400,6 +503,7 @@ export function RegistryView() {
                 <RegistryCard
                   key={server.id}
                   server={server}
+                  isInstalled={isServerInstalled(server)}
                   onInstall={() => setInstallTarget(server)}
                 />
               ))}
@@ -414,7 +518,7 @@ export function RegistryView() {
               </h3>
               <p className="text-sm text-text-muted text-center max-w-[340px]">
                 Search the registry to find and install MCP servers. Try searching
-                for "filesystem", "github", or "slack".
+                for &quot;filesystem&quot;, &quot;github&quot;, or &quot;slack&quot;.
               </p>
             </div>
           )
@@ -427,7 +531,7 @@ export function RegistryView() {
               No results found
             </h3>
             <p className="text-sm text-text-muted">
-              No servers match "{query}". Try a different search term.
+              No servers match &quot;{query}&quot;. Try a different search term.
             </p>
           </div>
         ) : (
@@ -439,6 +543,7 @@ export function RegistryView() {
               <RegistryCard
                 key={server.id}
                 server={server}
+                isInstalled={isServerInstalled(server)}
                 onInstall={() => setInstallTarget(server)}
               />
             ))}

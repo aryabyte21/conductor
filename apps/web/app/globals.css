@@ -73,7 +73,7 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold text-white transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white transition-all duration-200;
     background: linear-gradient(135deg, #7C3AED, #6D28D9);
     box-shadow: 0 0 20px rgba(124, 58, 237, 0.25);
   }
@@ -89,7 +89,7 @@
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-[#27272A] bg-transparent px-6 py-3 text-sm font-semibold text-[#FAFAFA] transition-all duration-200 hover:border-[#A1A1AA] hover:bg-[#111113];
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-[#27272A] bg-transparent px-6 py-3 text-base font-semibold text-[#FAFAFA] transition-all duration-200 hover:border-[#A1A1AA] hover:bg-[#111113];
   }
 
   .card {
@@ -102,11 +102,11 @@
   }
 
   .section-heading {
-    @apply text-3xl font-bold tracking-tight text-[#FAFAFA] sm:text-4xl;
+    @apply text-3xl font-bold tracking-tight text-[#FAFAFA] sm:text-4xl lg:text-5xl;
   }
 
   .section-subheading {
-    @apply mt-4 max-w-2xl text-lg text-[#A1A1AA];
+    @apply mt-5 max-w-2xl text-lg text-[#A1A1AA] sm:text-xl;
   }
 }
 

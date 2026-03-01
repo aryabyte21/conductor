@@ -146,11 +146,11 @@ function ClientCard({ client }: { client: ClientDetection }) {
       )}
     >
       {/* Header */}
-      <div className="flex items-center gap-3.5 mb-3">
-        <ClientLogo clientId={client.clientId} displayName={client.displayName} size={52} />
+      <div className="flex items-center gap-4 mb-3">
+        <ClientLogo clientId={client.clientId} displayName={client.displayName} size={64} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text-primary">
+            <span className="text-base font-semibold text-text-primary">
               {client.displayName}
             </span>
             <StatusDot status={status} />
@@ -255,9 +255,7 @@ export function ClientsView() {
     setSyncingAll(true);
     await syncToAllClients();
     setSyncingAll(false);
-    toast.success("Sync complete", {
-      description: `Synced to ${detectedCount} client${detectedCount !== 1 ? "s" : ""}.`,
-    });
+    // Note: syncToAllClients() already shows success/warning toasts
   };
 
   return (

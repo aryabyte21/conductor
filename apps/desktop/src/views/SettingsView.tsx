@@ -197,7 +197,10 @@ export function SettingsView() {
     setSettings((prev) => {
       const next = { ...prev, [key]: value };
       tauri.saveSettings(next).catch((e) => {
-        console.warn("Failed to save settings:", e);
+        const message = e instanceof Error ? e.message : String(e);
+        toast.error("Failed to save setting", { description: message });
+        // Revert the optimistic update
+        tauri.getSettings().then((s) => setSettings(s)).catch(() => {});
       });
       return next;
     });

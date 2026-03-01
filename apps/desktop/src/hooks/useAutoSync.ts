@@ -78,6 +78,16 @@ export function useAutoSync() {
     };
   }, [syncToAllClients]);
 
+  // Clean up pending sync timer on unmount to prevent
+  // firing after the component tree is torn down.
+  useEffect(() => {
+    return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+      }
+    };
+  }, []);
+
   // Return a function that configStore can call after mutations
   return {
     triggerAutoSync: () => {

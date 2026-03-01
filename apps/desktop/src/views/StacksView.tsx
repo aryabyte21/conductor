@@ -307,7 +307,26 @@ function ImportStackDialog({
       if (input.trim().startsWith("http")) {
         stack = await tauri.getStackFromUrl(input.trim());
       } else {
-        stack = JSON.parse(input) as McpStack;
+        const parsed = JSON.parse(input);
+        // Validate required fields to prevent importing malformed data
+        if (!parsed || typeof parsed !== "object") {
+          throw new Error("Invalid JSON: expected an object");
+        }
+        if (!parsed.name || typeof parsed.name !== "string") {
+          throw new Error("Invalid stack: missing or invalid 'name' field");
+        }
+        if (!Array.isArray(parsed.servers) || parsed.servers.length === 0) {
+          throw new Error("Invalid stack: 'servers' must be a non-empty array");
+        }
+        for (const s of parsed.servers) {
+          if (!s.name || typeof s.name !== "string") {
+            throw new Error("Invalid stack: each server must have a 'name' string");
+          }
+          if (!s.transport || !["stdio", "sse", "streamableHttp"].includes(s.transport)) {
+            throw new Error(`Invalid stack: server '${s.name}' has invalid transport '${s.transport}'`);
+          }
+        }
+        stack = parsed as McpStack;
       }
       setPreview(stack);
     } catch (err) {

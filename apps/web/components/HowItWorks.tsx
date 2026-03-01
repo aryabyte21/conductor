@@ -114,7 +114,7 @@ export function HowItWorks() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#7C3AED]">
+          <p className="text-base font-semibold uppercase tracking-wider text-[#7C3AED]">
             How it works
           </p>
           <h2 className="section-heading mt-3">
@@ -140,18 +140,18 @@ export function HowItWorks() {
                       <step.icon className="h-5 w-5 text-[#7C3AED]" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#7C3AED]">
+                      <p className="text-xs font-bold uppercase tracking-widest text-[#7C3AED]">
                         Step {step.number}
                       </p>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-[#71717A]">
+                      <p className="text-sm font-semibold uppercase tracking-wider text-[#71717A]">
                         {step.label}
                       </p>
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold text-[#FAFAFA]">
+                  <h3 className="text-2xl font-bold text-[#FAFAFA] sm:text-3xl">
                     {step.title}
                   </h3>
-                  <p className="mt-3 text-[#A1A1AA] leading-relaxed">
+                  <p className="mt-3 text-base text-[#A1A1AA] leading-relaxed sm:text-lg">
                     {step.description}
                   </p>
                 </div>

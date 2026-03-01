@@ -190,7 +190,7 @@ export function Hero() {
         </div>
 
         {/* Headline */}
-        <h1 className="mx-auto max-w-4xl text-center text-4xl font-bold leading-tight tracking-tight text-[#FAFAFA] sm:text-5xl lg:text-6xl">
+        <h1 className="mx-auto max-w-4xl text-center text-4xl font-bold leading-tight tracking-tight text-[#FAFAFA] sm:text-5xl lg:text-7xl">
           Configure your MCP servers once.{" "}
           <span className="bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] bg-clip-text text-transparent">
             Use them everywhere.
@@ -198,7 +198,7 @@ export function Hero() {
         </h1>
 
         {/* Subheadline */}
-        <p className="mx-auto mt-6 max-w-2xl text-center text-lg leading-relaxed text-[#A1A1AA] sm:text-xl">
+        <p className="mx-auto mt-8 max-w-2xl text-center text-lg leading-relaxed text-[#A1A1AA] sm:text-xl lg:text-2xl">
           Stop copy-pasting MCP configs between Claude Desktop, Cursor, VS Code,
           and every new AI tool. Conductor keeps them all in sync, automatically.
         </p>
@@ -221,7 +221,7 @@ export function Hero() {
         </div>
 
         {/* Stats */}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-[#71717A]">
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-base text-[#71717A]">
           <span className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#7C3AED]" />
             9 clients supported

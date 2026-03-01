@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ShieldX,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { cn, formatRelativeTime } from "@/lib/utils";
@@ -83,6 +84,60 @@ function ToggleSwitch({
   );
 }
 
+// ── Delete Confirm Dialog ────────────────────────────────────────────
+
+function DeleteConfirmDialog({
+  serverName,
+  onConfirm,
+  onCancel,
+}: {
+  serverName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm"
+        onClick={onCancel}
+      />
+      <div className="fixed inset-0 z-[91] flex items-center justify-center p-4">
+        <div
+          className="w-full max-w-[380px] bg-surface-2 border border-border rounded-xl shadow-2xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-6 py-4 border-b border-border">
+            <div className="flex items-center gap-2 text-error">
+              <AlertTriangle className="w-5 h-5" />
+              <h3 className="text-base font-semibold">Delete Server</h3>
+            </div>
+          </div>
+          <div className="px-6 py-4">
+            <p className="text-sm text-text-secondary">
+              Are you sure you want to delete <strong className="text-text-primary">{serverName}</strong>?
+              This will remove it from Conductor and it will be cleaned up from all synced clients on next sync.
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-border">
+            <button
+              onClick={onCancel}
+              className="h-9 px-4 rounded-lg text-sm font-medium text-text-secondary hover:bg-surface-3"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="h-9 px-4 rounded-lg text-sm font-medium bg-error text-white hover:bg-error/90 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Server Card ─────────────────────────────────────────────────────
 
 function ServerCard({
@@ -93,6 +148,7 @@ function ServerCard({
   onClick: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const toggleServer = useConfigStore((s) => s.toggleServer);
   const deleteServer = useConfigStore((s) => s.deleteServer);
   const clients = useClientStore((s) => s.clients);
@@ -185,7 +241,7 @@ function ServerCard({
                 onClick={(e) => {
                   e.stopPropagation();
                   setMenuOpen(false);
-                  deleteServer(server.id);
+                  setConfirmDelete(true);
                 }}
                 className="flex items-center gap-2 w-full px-3 py-2 text-sm text-error hover:bg-error/10"
               >
@@ -201,6 +257,17 @@ function ServerCard({
         enabled={server.enabled}
         onChange={(v) => toggleServer(server.id, v)}
       />
+
+      {confirmDelete && (
+        <DeleteConfirmDialog
+          serverName={server.displayName || server.name}
+          onConfirm={() => {
+            setConfirmDelete(false);
+            deleteServer(server.id);
+          }}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   );
 }
@@ -246,6 +313,7 @@ function ServerDetailPanel({
   const updateServer = useConfigStore((s) => s.updateServer);
   const deleteServer = useConfigStore((s) => s.deleteServer);
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState(
     server.displayName || ""
   );
@@ -333,6 +401,7 @@ function ServerDetailPanel({
   };
 
   const handleDelete = async () => {
+    setConfirmDelete(false);
     await deleteServer(server.id);
     onClose();
   };
@@ -663,7 +732,7 @@ function ServerDetailPanel({
               Danger Zone
             </h4>
             <button
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               className="flex items-center gap-2 h-9 px-4 rounded-lg border border-error/30 text-error text-sm font-medium
                 hover:bg-error/10 transition-colors"
             >
@@ -673,6 +742,14 @@ function ServerDetailPanel({
           </section>
         </div>
       </div>
+
+      {confirmDelete && (
+        <DeleteConfirmDialog
+          serverName={server.displayName || server.name}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </>
   );
 }
