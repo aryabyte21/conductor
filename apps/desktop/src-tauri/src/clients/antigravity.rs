@@ -86,6 +86,7 @@ impl ClientAdapter for AntigravityAdapter {
         &self,
         servers: &[McpServerConfig],
         existing_content: Option<&str>,
+        previously_synced_names: &[String],
     ) -> Result<()> {
         let path = Self::get_config_path()
             .ok_or_else(|| anyhow::anyhow!("Cannot determine config path for Antigravity"))?;
@@ -108,7 +109,7 @@ impl ClientAdapter for AntigravityAdapter {
         };
 
         let output =
-            serializer::serialize_to_client_format(format, servers, current_content.as_deref())?;
+            serializer::serialize_to_client_format(format, servers, current_content.as_deref(), previously_synced_names)?;
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;

@@ -35,25 +35,69 @@ pub async fn sync_to_client(
             success: true,
             servers_written: 0,
             error: None,
+            warnings: vec![],
         });
     }
 
+    let mut warnings: Vec<String> = Vec::new();
+
     // Inject secrets from keychain and OAuth access token into env vars.
+    // Fault-tolerant: if one server's secret injection fails, log a warning
+    // and still include the server (without the failed secret).
     let mut enriched_servers: Vec<McpServerConfig> = Vec::with_capacity(servers_to_sync.len());
     for mut server in servers_to_sync {
-        inject_secrets(&mut server)
-            .await
-            .map_err(|e| e.to_string())?;
+        match inject_secrets(&mut server).await {
+            Ok(()) => {}
+            Err(e) => {
+                warnings.push(format!("Server '{}': {}", server.name, e));
+            }
+        }
         enriched_servers.push(server);
     }
 
     let count = enriched_servers.len();
+    let synced_names: Vec<String> = enriched_servers.iter().map(|s| s.name.clone()).collect();
     let config_path = adapter.config_path();
-    let existing_content = config_path
-        .as_ref()
-        .and_then(|path| read_existing_content(path).ok().flatten());
 
-    match adapter.write_servers(&enriched_servers, existing_content.as_deref()) {
+    // Don't swallow file-read errors — capture them as warnings so rollback
+    // knows whether we actually had previous content or just failed to read it.
+    let existing_content = match config_path.as_ref() {
+        Some(path) => match read_existing_content(path) {
+            Ok(content) => content,
+            Err(e) => {
+                warnings.push(format!(
+                    "Could not read {}: {}",
+                    path.display(),
+                    e
+                ));
+                None
+            }
+        },
+        None => None,
+    };
+
+    // Read previously_synced_names from existing sync entry (cumulative tracking).
+    // If empty and a sync entry exists, seed from the client's actual server names
+    // so that pre-existing Conductor-managed servers are recognized as orphans if
+    // later deleted (migration path for existing installs).
+    let prev_synced_names: Vec<String> = {
+        let sync_entry = cfg.sync.iter().find(|s| s.client_id == client_id);
+        match sync_entry {
+            Some(entry) if !entry.previously_synced_names.is_empty() => {
+                entry.previously_synced_names.clone()
+            }
+            Some(_) => {
+                // Migration seed: use client's current server names as the baseline
+                match adapter.read_servers() {
+                    Ok(client_servers) => client_servers.into_iter().map(|s| s.name).collect(),
+                    Err(_) => Vec::new(),
+                }
+            }
+            None => Vec::new(),
+        }
+    };
+
+    match adapter.write_servers(&enriched_servers, existing_content.as_deref(), &prev_synced_names) {
         Ok(()) => {
             if let Err(verify_err) = verify_written_servers(&*adapter, &enriched_servers) {
                 let rollback_err =
@@ -74,6 +118,7 @@ pub async fn sync_to_client(
                     success: false,
                     servers_written: 0,
                     error: Some(error),
+                    warnings,
                 });
             }
 
@@ -90,14 +135,25 @@ pub async fn sync_to_client(
             let mut cfg = config::read_config().map_err(|e| e.to_string())?;
             let timestamp = chrono::Utc::now().to_rfc3339();
 
+            // Build cumulative previously_synced_names = previous ∪ current
+            let mut cumulative: HashSet<String> = prev_synced_names.into_iter().collect();
+            for name in &synced_names {
+                cumulative.insert(name.clone());
+            }
+            let updated_prev: Vec<String> = cumulative.into_iter().collect();
+
             if let Some(sync_cfg) = cfg.sync.iter_mut().find(|s| s.client_id == client_id) {
                 sync_cfg.last_synced = Some(timestamp);
                 sync_cfg.server_ids = ids_to_sync;
+                sync_cfg.synced_server_names = synced_names;
+                sync_cfg.previously_synced_names = updated_prev;
             } else {
                 cfg.sync.push(config::ClientSyncConfig {
                     client_id: client_id.clone(),
                     enabled: true,
                     server_ids: ids_to_sync,
+                    synced_server_names: synced_names,
+                    previously_synced_names: updated_prev,
                     last_synced: Some(timestamp),
                 });
             }
@@ -109,6 +165,7 @@ pub async fn sync_to_client(
                 success: true,
                 servers_written: count,
                 error: None,
+                warnings,
             })
         }
         Err(e) => {
@@ -124,6 +181,7 @@ pub async fn sync_to_client(
                 success: false,
                 servers_written: 0,
                 error: Some(error),
+                warnings,
             })
         }
     }
@@ -157,6 +215,7 @@ pub async fn sync_to_all_clients() -> Result<Vec<SyncResult>, String> {
                 success: false,
                 servers_written: 0,
                 error: Some(e),
+                warnings: vec![],
             }),
         }
     }
@@ -214,6 +273,8 @@ fn read_existing_content(path: &Path) -> anyhow::Result<Option<String>> {
     Ok(Some(content))
 }
 
+/// Attempt to restore a client config file to its previous state.
+/// NEVER deletes config files — a partially-written config is better than no config.
 fn rollback_client_config(
     path: Option<&std::path::PathBuf>,
     previous_content: Option<&str>,
@@ -222,13 +283,18 @@ fn rollback_client_config(
         return None;
     };
 
-    let result = if let Some(content) = previous_content {
+    if let Some(content) = previous_content {
         backup::atomic_write(path, content)
-    } else if path.exists() {
-        std::fs::remove_file(path).map_err(anyhow::Error::from)
+            .err()
+            .map(|e| e.to_string())
     } else {
-        Ok(())
-    };
-
-    result.err().map(|e| e.to_string())
+        // No previous content available. Do NOT delete the file — a stale or
+        // partially-written config is far safer than a missing one (which can
+        // crash clients like Claude Desktop).
+        eprintln!(
+            "Warning: rollback skipped for {} (no previous content captured)",
+            path.display()
+        );
+        None
+    }
 }

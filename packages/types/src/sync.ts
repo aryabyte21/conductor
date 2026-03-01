@@ -5,6 +5,7 @@ export interface SyncResult {
   success: boolean;
   serversWritten: number;
   error?: string;
+  warnings?: string[];
 }
 
 export interface ImportResult {

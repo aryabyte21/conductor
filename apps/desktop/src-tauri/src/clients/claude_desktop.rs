@@ -59,6 +59,7 @@ impl ClientAdapter for ClaudeDesktopAdapter {
         &self,
         servers: &[McpServerConfig],
         existing_content: Option<&str>,
+        previously_synced_names: &[String],
     ) -> Result<()> {
         let path = Self::get_config_path()
             .ok_or_else(|| anyhow::anyhow!("Cannot determine config path for Claude Desktop"))?;
@@ -86,6 +87,7 @@ impl ClientAdapter for ClaudeDesktopAdapter {
             "claude-desktop",
             servers,
             current_content.as_deref(),
+            previously_synced_names,
         )?;
 
         if let Some(parent) = path.parent() {

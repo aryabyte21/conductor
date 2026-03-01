@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Plus,
   Download,
@@ -10,14 +10,21 @@ import {
   ExternalLink,
   X,
   Server as ServerIcon,
+  KeyRound,
+  ShieldCheck,
+  ShieldX,
+  Loader2,
 } from "lucide-react";
+import { listen } from "@tauri-apps/api/event";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { useConfigStore } from "@/stores/configStore";
 import { useClientStore } from "@/stores/clientStore";
 import { useUIStore } from "@/stores/uiStore";
 import { ServerLogo } from "@/components/ServerLogo";
 import { AddServerModal } from "@/components/AddServerModal";
-import type { McpServer, TransportType } from "@conductor/types";
+import * as tauri from "@/lib/tauri";
+import { toast } from "sonner";
+import type { McpServer, TransportType, OAuthStatus } from "@conductor/types";
 
 // ── Transport Badge ─────────────────────────────────────────────────
 
@@ -198,6 +205,35 @@ function ServerCard({
   );
 }
 
+// ── OAuth Helpers ───────────────────────────────────────────────────
+
+const KNOWN_PROVIDERS: { pattern: RegExp; provider: string }[] = [
+  { pattern: /linear/i, provider: "linear" },
+  { pattern: /github/i, provider: "github" },
+  { pattern: /google/i, provider: "google" },
+  { pattern: /notion/i, provider: "notion" },
+  { pattern: /slack/i, provider: "slack" },
+  { pattern: /supabase/i, provider: "supabase" },
+];
+
+function detectProvider(server: McpServer): string | null {
+  const haystack = [server.name, server.displayName, server.url]
+    .filter(Boolean)
+    .join(" ");
+  for (const { pattern, provider } of KNOWN_PROVIDERS) {
+    if (pattern.test(haystack)) return provider;
+  }
+  // Fall back to the server URL's hostname if available
+  if (server.url) {
+    try {
+      return new URL(server.url).hostname;
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
 // ── Server Detail Panel ─────────────────────────────────────────────
 
 function ServerDetailPanel({
@@ -216,6 +252,77 @@ function ServerDetailPanel({
   const [editDescription, setEditDescription] = useState(
     server.description || ""
   );
+
+  // ── OAuth state ──────────────────────────────────────────────
+  const isUrlServer = server.transport === "sse" || server.transport === "streamableHttp";
+  const [authStatus, setAuthStatus] = useState<OAuthStatus | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authChecking, setAuthChecking] = useState(false);
+
+  const refreshAuthStatus = useCallback(async () => {
+    if (!isUrlServer) return;
+    setAuthChecking(true);
+    try {
+      const status = await tauri.checkAuthStatus(server.id);
+      setAuthStatus(status);
+    } catch {
+      // Silently fail — auth check is best-effort
+    }
+    setAuthChecking(false);
+  }, [server.id, isUrlServer]);
+
+  // Check auth status on mount
+  useEffect(() => {
+    refreshAuthStatus();
+  }, [refreshAuthStatus]);
+
+  // Listen for OAuth callback to auto-refresh status
+  useEffect(() => {
+    if (!isUrlServer) return;
+    const unlisten = listen<{ serverId: string; provider: string; success: boolean }>(
+      "oauth-callback-received",
+      (event) => {
+        if (event.payload.serverId === server.id && event.payload.success) {
+          refreshAuthStatus();
+        }
+      }
+    );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [server.id, isUrlServer, refreshAuthStatus]);
+
+  const handleAuthorize = useCallback(async () => {
+    const provider = detectProvider(server);
+    if (!provider) {
+      toast.error("Cannot detect OAuth provider", {
+        description: "Set OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET in environment variables first.",
+      });
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      await tauri.startOAuthFlow(server.id, provider);
+      toast.info("Authorization started", {
+        description: "Complete the sign-in in your browser, then return here.",
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error("Authorization failed", { description: message });
+    }
+    setAuthLoading(false);
+  }, [server]);
+
+  const handleRevoke = useCallback(async () => {
+    try {
+      await tauri.revokeAuth(server.id);
+      setAuthStatus((prev) => prev ? { ...prev, authenticated: false, provider: undefined, expiresAt: undefined } : null);
+      toast.success("Credentials revoked");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error("Revoke failed", { description: message });
+    }
+  }, [server.id]);
 
   const handleSave = async () => {
     await updateServer(server.id, {
@@ -418,6 +525,96 @@ function ServerDetailPanel({
               )}
             </div>
           </section>
+
+          {/* Authentication — only for URL-based servers */}
+          {isUrlServer && (
+            <section>
+              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
+                Authentication
+              </h4>
+              <div className="space-y-3">
+                {/* Status indicator */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-surface-3">
+                  {authChecking ? (
+                    <Loader2 className="w-5 h-5 text-text-muted animate-spin shrink-0" />
+                  ) : authStatus?.authenticated ? (
+                    <ShieldCheck className="w-5 h-5 text-success shrink-0" />
+                  ) : (
+                    <ShieldX className="w-5 h-5 text-text-muted shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary">
+                      {authChecking
+                        ? "Checking..."
+                        : authStatus?.authenticated
+                          ? "Authenticated"
+                          : "Not authenticated"}
+                    </p>
+                    {authStatus?.authenticated && authStatus.provider && (
+                      <p className="text-[11px] text-text-muted">
+                        Provider: {authStatus.provider}
+                        {authStatus.expiresAt && (
+                          <> · Expires {formatRelativeTime(authStatus.expiresAt)}</>
+                        )}
+                      </p>
+                    )}
+                    {!authStatus?.authenticated && (
+                      <p className="text-[11px] text-text-muted">
+                        Authorize to sync OAuth tokens to all clients
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  {!authStatus?.authenticated ? (
+                    <button
+                      onClick={handleAuthorize}
+                      disabled={authLoading}
+                      className={cn(
+                        "flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium transition-colors",
+                        authLoading
+                          ? "bg-accent/60 text-white/60 cursor-wait"
+                          : "bg-accent text-white hover:bg-accent/90"
+                      )}
+                    >
+                      {authLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <KeyRound className="w-4 h-4" />
+                      )}
+                      {authLoading ? "Authorizing..." : "Authorize"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleAuthorize}
+                        disabled={authLoading}
+                        className="flex items-center gap-1.5 h-9 px-4 rounded-lg border border-border text-sm font-medium
+                          text-text-secondary hover:bg-surface-3 transition-colors"
+                      >
+                        {authLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                        Re-authorize
+                      </button>
+                      <button
+                        onClick={handleRevoke}
+                        className="flex items-center gap-1.5 h-9 px-4 rounded-lg border border-error/30 text-sm font-medium
+                          text-error hover:bg-error/10 transition-colors"
+                      >
+                        <ShieldX className="w-4 h-4" />
+                        Revoke
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Metadata */}
           <section>

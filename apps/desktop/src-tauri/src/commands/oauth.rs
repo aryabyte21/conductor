@@ -65,14 +65,29 @@ pub async fn check_auth_status(server_id: String) -> Result<OAuthStatus, String>
 }
 
 /// Revoke OAuth authentication for a server.
+/// Cleans up all keyring entries including dynamically-registered client IDs.
 #[tauri::command]
 pub async fn revoke_auth(server_id: String) -> Result<(), String> {
-    let keys = [
+    // Core OAuth keys
+    let mut keys = vec![
         format!("{}:oauth_token", server_id),
         format!("{}:oauth_provider", server_id),
         format!("{}:oauth_expires", server_id),
         format!("{}:oauth_refresh", server_id),
     ];
+
+    // Also clean up per-provider client credential keys that may have been
+    // stored during dynamic client registration or manual configuration.
+    let providers = ["GITHUB", "GOOGLE", "NOTION", "SLACK", "LINEAR"];
+    for provider in &providers {
+        keys.push(format!("{}:OAUTH_{}_CLIENT_ID", server_id, provider));
+        keys.push(format!("{}:OAUTH_{}_CLIENT_SECRET", server_id, provider));
+    }
+    // Generic credential keys
+    keys.push(format!("{}:OAUTH_CLIENT_ID", server_id));
+    keys.push(format!("{}:OAUTH_CLIENT_SECRET", server_id));
+    keys.push(format!("{}:CLIENT_ID", server_id));
+    keys.push(format!("{}:CLIENT_SECRET", server_id));
 
     for username in &keys {
         if let Ok(entry) = keyring::Entry::new("conductor", username) {

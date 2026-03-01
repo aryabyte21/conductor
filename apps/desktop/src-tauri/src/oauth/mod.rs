@@ -139,8 +139,19 @@ pub async fn get_valid_oauth_token(server_id: &str) -> Result<Option<String>> {
         return Ok(Some(token));
     }
 
-    let refreshed = refresh_access_token(server_id).await?;
-    Ok(Some(refreshed.access_token))
+    // If refresh fails, fall back to the existing (possibly expired) token.
+    // A stale token that the MCP server rejects is far better than aborting
+    // the entire sync and potentially corrupting the client config.
+    match refresh_access_token(server_id).await {
+        Ok(refreshed) => Ok(Some(refreshed.access_token)),
+        Err(e) => {
+            eprintln!(
+                "Warning: OAuth refresh failed for '{}': {}. Using existing token.",
+                server_id, e
+            );
+            Ok(Some(token))
+        }
+    }
 }
 
 fn provider_spec(provider: &str) -> Result<ProviderSpec> {

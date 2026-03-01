@@ -16,6 +16,10 @@ export interface ClientDetection {
   configPath?: string;
   serverCount: number;
   serverNames: string[];
+  expectedServerNames: string[];
+  lastSyncedServerNames: string[];
+  lastSyncedServerCount: number;
+  previouslySyncedNames: string[];
   lastSyncedAt?: string;
   configUpdatedAt?: string;
 }

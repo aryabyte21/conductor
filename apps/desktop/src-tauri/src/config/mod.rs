@@ -151,6 +151,12 @@ pub struct ClientSyncConfig {
     #[serde(default)]
     pub server_ids: Vec<String>,
     #[serde(default)]
+    pub synced_server_names: Vec<String>,
+    /// Cumulative set of ALL server names Conductor has ever synced to this client.
+    /// Used to distinguish Conductor-managed orphans from user-added servers.
+    #[serde(default)]
+    pub previously_synced_names: Vec<String>,
+    #[serde(default)]
     pub last_synced: Option<String>,
 }
 
@@ -163,6 +169,8 @@ pub struct SyncResult {
     pub servers_written: usize,
     #[serde(default)]
     pub error: Option<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

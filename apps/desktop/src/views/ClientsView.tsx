@@ -15,6 +15,7 @@ import { useClientStore } from "@/stores/clientStore";
 import { useConfigStore } from "@/stores/configStore";
 import { useSyncStore } from "@/stores/syncStore";
 import { ClientLogo } from "@/components/ClientLogo";
+import { toast } from "sonner";
 import type { ClientDetection } from "@conductor/types";
 
 // ── Status Dot ──────────────────────────────────────────────────────
@@ -25,6 +26,25 @@ function getSyncStatus(client: ClientDetection): SyncStatus {
   if (!client.detected) return "not-installed";
   if (!client.lastSyncedAt) return "out-of-sync";
   if (client.configUpdatedAt && client.configUpdatedAt > client.lastSyncedAt) return "out-of-sync";
+
+  const expectedNames = new Set(client.expectedServerNames);
+  const clientNames = new Set(client.serverNames);
+
+  // Check if any expected Conductor server is missing from the client's config
+  const hasMissing = client.expectedServerNames.some(
+    (name) => !clientNames.has(name)
+  );
+  if (hasMissing) return "out-of-sync";
+
+  // Check for orphans: servers Conductor previously synced that are
+  // still in the client but no longer expected (i.e. deleted from Conductor)
+  if (client.previouslySyncedNames && client.previouslySyncedNames.length > 0) {
+    const hasOrphan = client.previouslySyncedNames.some(
+      (name) => clientNames.has(name) && !expectedNames.has(name)
+    );
+    if (hasOrphan) return "out-of-sync";
+  }
+
   return "synced";
 }
 
@@ -91,6 +111,13 @@ function ClientCard({ client }: { client: ClientDetection }) {
       if (result.success) {
         setFlashGreen(true);
         setTimeout(() => setFlashGreen(false), 1500);
+
+        // Show warnings if any (e.g., OAuth refresh failed for a server)
+        if (result.warnings && result.warnings.length > 0) {
+          toast.warning(`Synced ${client.displayName} with warnings`, {
+            description: result.warnings.join("; "),
+          });
+        }
       }
     }
     setSyncing(false);

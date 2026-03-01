@@ -89,12 +89,108 @@ struct RegistrySearchResponse {
 /// Get popular servers from the Smithery registry (no search query).
 #[tauri::command]
 pub async fn get_popular_servers() -> Result<Vec<RegistryServer>, String> {
-    let url = "https://registry.smithery.ai/servers?pageSize=20";
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| e.to_string())?;
+    fetch_servers(&client, "https://registry.smithery.ai/servers?pageSize=20").await
+}
+
+/// Search the Smithery MCP server registry.
+///
+/// Uses a dual-search strategy to work around Smithery's purely semantic search:
+///   1. Semantic search via `?q=` for conceptual matches
+///   2. Namespace search via `?namespace=` for exact name matches
+///
+/// Results are merged, deduplicated, and re-ranked so that servers whose name
+/// contains the query string appear first.
+#[tauri::command]
+pub async fn search_registry(query: String) -> Result<Vec<RegistryServer>, String> {
+    let encoded_query = urlencoding::encode(&query);
+    let query_lower = query.trim().to_lowercase();
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|e| e.to_string())?;
+
+    // Fire both searches concurrently
+    let semantic_url = format!(
+        "https://registry.smithery.ai/servers?q={}&pageSize=20",
+        encoded_query
+    );
+    let namespace_url = format!(
+        "https://registry.smithery.ai/servers?namespace={}&pageSize=10",
+        encoded_query
+    );
+
+    let (semantic_result, namespace_result) =
+        tokio::join!(fetch_servers(&client, &semantic_url), fetch_servers(&client, &namespace_url));
+
+    let mut seen = std::collections::HashSet::new();
+    let mut servers: Vec<RegistryServer> = Vec::new();
+
+    // Merge — namespace hits first (they are exact name matches)
+    if let Ok(ns) = namespace_result {
+        for s in ns {
+            if seen.insert(s.id.clone()) {
+                servers.push(s);
+            }
+        }
+    }
+    if let Ok(sem) = semantic_result {
+        for s in sem {
+            if seen.insert(s.id.clone()) {
+                servers.push(s);
+            }
+        }
+    }
+
+    if servers.is_empty() {
+        return Ok(servers);
+    }
+
+    // Re-rank: name/displayName containing the query > everything else.
+    // Within each tier, sort by use_count descending so popular servers rank first.
+    servers.sort_by(|a, b| {
+        let a_match = name_match_score(&a.qualified_name, &a.display_name, &query_lower);
+        let b_match = name_match_score(&b.qualified_name, &b.display_name, &query_lower);
+        b_match
+            .cmp(&a_match)
+            .then_with(|| b.use_count.cmp(&a.use_count))
+    });
+
+    Ok(servers)
+}
+
+/// Score how well a server's name matches the query.
+///   3 = exact match on qualifiedName or displayName
+///   2 = qualifiedName or displayName contains query
+///   1 = qualifiedName or displayName starts with query
+///   0 = no name match (semantic only)
+fn name_match_score(qualified_name: &str, display_name: &str, query_lower: &str) -> u8 {
+    let qn = qualified_name.to_lowercase();
+    let dn = display_name.to_lowercase();
+
+    // Check the slug part of the qualified name (after the last '/')
+    let slug = qn.rsplit('/').next().unwrap_or(&qn);
+
+    if slug == query_lower || dn == query_lower {
+        3
+    } else if slug.starts_with(query_lower) || dn.starts_with(query_lower) {
+        2
+    } else if qn.contains(query_lower) || dn.contains(query_lower) {
+        1
+    } else {
+        0
+    }
+}
+
+/// Fetch and parse servers from a Smithery API URL.
+async fn fetch_servers(
+    client: &reqwest::Client,
+    url: &str,
+) -> Result<Vec<RegistryServer>, String> {
     let response = client
         .get(url)
         .header("Accept", "application/json")
@@ -113,46 +209,6 @@ pub async fn get_popular_servers() -> Result<Vec<RegistryServer>, String> {
             Ok(resp) => resp.servers,
             Err(_) => serde_json::from_str(&body)
                 .map_err(|e| format!("Failed to parse registry response: {}", e))?,
-        };
-
-    Ok(raw_servers.into_iter().map(RegistryServer::from).collect())
-}
-
-/// Search the Smithery MCP server registry.
-#[tauri::command]
-pub async fn search_registry(query: String) -> Result<Vec<RegistryServer>, String> {
-    let encoded_query = urlencoding::encode(&query);
-    let url = format!(
-        "https://registry.smithery.ai/servers?q={}&pageSize=20",
-        encoded_query
-    );
-
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .build()
-        .map_err(|e| e.to_string())?;
-    let response = client
-        .get(&url)
-        .header("Accept", "application/json")
-        .send()
-        .await
-        .map_err(|e| format!("Failed to query registry: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!("Registry returned status {}", response.status()));
-    }
-
-    let body = response.text().await.map_err(|e| e.to_string())?;
-
-    // Try parsing as the expected { servers: [...] } wrapper
-    let raw_servers: Vec<RawRegistryServer> =
-        match serde_json::from_str::<RegistrySearchResponse>(&body) {
-            Ok(resp) => resp.servers,
-            Err(_) => {
-                // Try parsing as a direct array
-                serde_json::from_str(&body)
-                    .map_err(|e| format!("Failed to parse registry response: {}", e))?
-            }
         };
 
     Ok(raw_servers.into_iter().map(RegistryServer::from).collect())

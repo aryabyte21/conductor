@@ -16,6 +16,14 @@ pub async fn detect_clients() -> Result<Vec<ClientDetection>, String> {
         .max()
         .cloned();
 
+    // Compute expected server names: names of all enabled servers in Conductor
+    let expected_server_names: Vec<String> = cfg
+        .servers
+        .iter()
+        .filter(|s| s.enabled)
+        .map(|s| s.name.clone())
+        .collect();
+
     for adapter in &adapters {
         let detected = adapter.detect();
         let (server_count, server_names) = if detected {
@@ -30,11 +38,15 @@ pub async fn detect_clients() -> Result<Vec<ClientDetection>, String> {
             (0, Vec::new())
         };
 
-        let last_synced_at = cfg
-            .sync
-            .iter()
-            .find(|s| s.client_id == adapter.id())
-            .and_then(|s| s.last_synced.clone());
+        let sync_entry = cfg.sync.iter().find(|s| s.client_id == adapter.id());
+        let last_synced_at = sync_entry.and_then(|s| s.last_synced.clone());
+        let last_synced_server_names = sync_entry
+            .map(|s| s.synced_server_names.clone())
+            .unwrap_or_default();
+        let last_synced_server_count = last_synced_server_names.len();
+        let previously_synced_names = sync_entry
+            .map(|s| s.previously_synced_names.clone())
+            .unwrap_or_default();
 
         detections.push(ClientDetection {
             client_id: adapter.id().to_string(),
@@ -46,6 +58,10 @@ pub async fn detect_clients() -> Result<Vec<ClientDetection>, String> {
                 .map(|p| p.to_string_lossy().to_string()),
             server_count,
             server_names,
+            expected_server_names: expected_server_names.clone(),
+            last_synced_server_names,
+            last_synced_server_count,
+            previously_synced_names,
             last_synced_at,
             config_updated_at: config_updated_at.clone(),
         });

@@ -105,17 +105,20 @@ impl ClientAdapter for JetBrainsAdapter {
         &self,
         servers: &[McpServerConfig],
         existing_content: Option<&str>,
+        previously_synced_names: &[String],
     ) -> Result<()> {
         let path = Self::get_config_path()
             .ok_or_else(|| anyhow::anyhow!("Cannot determine config path for JetBrains IDE"))?;
 
         // Read existing servers to preserve client-specific ones
-        let conductor_names: std::collections::HashSet<&str> =
-            servers.iter().map(|s| s.name.as_str()).collect();
+        let conductor_names_lower: std::collections::HashSet<String> =
+            servers.iter().map(|s| s.name.to_lowercase()).collect();
+        let prev_synced_lower: std::collections::HashSet<String> =
+            previously_synced_names.iter().map(|s| s.to_lowercase()).collect();
 
         let mut all_servers: Vec<McpServerConfig> = Vec::new();
 
-        // First, add existing servers not managed by Conductor
+        // First, add existing servers not managed by Conductor (skip orphans)
         let current_content = match existing_content {
             Some(c) => Some(c.to_string()),
             None => {
@@ -129,7 +132,10 @@ impl ClientAdapter for JetBrainsAdapter {
         if let Some(ref content) = current_content {
             if let Ok(existing_servers) = normalizer::parse_client_config("jetbrains", content) {
                 for s in existing_servers {
-                    if !conductor_names.contains(s.name.as_str()) {
+                    let name_lower = s.name.to_lowercase();
+                    let is_conductor = conductor_names_lower.contains(&name_lower);
+                    let was_conductor = prev_synced_lower.contains(&name_lower);
+                    if !is_conductor && !was_conductor {
                         all_servers.push(s);
                     }
                 }
@@ -139,7 +145,7 @@ impl ClientAdapter for JetBrainsAdapter {
         // Then add Conductor servers
         all_servers.extend(servers.iter().cloned());
 
-        let output = serializer::serialize_to_client_format("jetbrains", &all_servers, None)?;
+        let output = serializer::serialize_to_client_format("jetbrains", &all_servers, None, previously_synced_names)?;
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;

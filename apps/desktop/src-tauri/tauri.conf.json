@@ -32,6 +32,7 @@
     "active": true,
     "targets": ["dmg", "app"],
     "icon": [
+      "icons/icon.icns",
       "icons/icon_32.png",
       "icons/icon_128.png",
       "icons/icon_256.png",

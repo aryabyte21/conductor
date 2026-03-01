@@ -36,10 +36,13 @@ pub trait ClientAdapter: Send + Sync {
 
     /// Write MCP server configurations to this client's config,
     /// optionally merging with existing content.
+    /// `previously_synced_names` is the cumulative set of all server names
+    /// Conductor has ever synced to this client — used to remove orphans.
     fn write_servers(
         &self,
         servers: &[McpServerConfig],
         existing_content: Option<&str>,
+        previously_synced_names: &[String],
     ) -> Result<()>;
 }
 
@@ -55,6 +58,14 @@ pub struct ClientDetection {
     pub server_count: usize,
     #[serde(default)]
     pub server_names: Vec<String>,
+    #[serde(default)]
+    pub expected_server_names: Vec<String>,
+    #[serde(default)]
+    pub last_synced_server_names: Vec<String>,
+    #[serde(default)]
+    pub last_synced_server_count: usize,
+    #[serde(default)]
+    pub previously_synced_names: Vec<String>,
     #[serde(default)]
     pub last_synced_at: Option<String>,
     #[serde(default)]

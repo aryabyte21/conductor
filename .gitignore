@@ -8,3 +8,5 @@ target/
 .env.local
 *.log
 .nx/
+src-tauri/target/
+target/

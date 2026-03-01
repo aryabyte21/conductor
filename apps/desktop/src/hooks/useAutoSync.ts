@@ -54,6 +54,28 @@ export function useAutoSync() {
     };
   }, [detectClients]);
 
+  // Auto-sync after successful OAuth authentication so the fresh token
+  // is immediately pushed to all clients without manual intervention.
+  useEffect(() => {
+    const unlisten = listen<{ serverId: string; provider: string; success: boolean }>(
+      "oauth-callback-received",
+      (event) => {
+        if (!event.payload.success) return;
+
+        toast.success("OAuth authentication successful", {
+          description: `Syncing ${event.payload.provider} credentials to all clients...`,
+        });
+
+        // Sync immediately — don't wait for the auto-sync delay
+        syncToAllClients();
+      }
+    );
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [syncToAllClients]);
+
   // Return a function that configStore can call after mutations
   return {
     triggerAutoSync: () => {

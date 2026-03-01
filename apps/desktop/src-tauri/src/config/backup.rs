@@ -7,6 +7,14 @@ use std::path::Path;
 /// 2. If the target file exists, creates a timestamped .bak backup.
 /// 3. Renames the temporary file to the target path.
 pub fn atomic_write(path: &Path, content: &str) -> Result<()> {
+    // Safety check: if we're writing a JSON file, verify the content is valid
+    // JSON before touching the disk. This prevents writing corrupt data that
+    // could crash clients like Claude Desktop.
+    if path.extension().and_then(|e| e.to_str()) == Some("json") {
+        let _: serde_json::Value = serde_json::from_str(content)
+            .with_context(|| format!("Refusing to write invalid JSON to {}", path.display()))?;
+    }
+
     let _write_guard = crate::file_guard::acquire_internal_write(path)?;
 
     let parent = path.parent().ok_or_else(|| {
