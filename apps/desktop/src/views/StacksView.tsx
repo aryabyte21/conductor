@@ -178,9 +178,26 @@ function CreateStackDialog({
 
             {/* Server selection */}
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-2">
-                Select Servers *
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium text-text-secondary">
+                  Select Servers *
+                </label>
+                {servers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedServerIds.size === servers.length) {
+                        setSelectedServerIds(new Set());
+                      } else {
+                        setSelectedServerIds(new Set(servers.map((s) => s.id)));
+                      }
+                    }}
+                    className="text-[11px] font-medium text-accent hover:text-accent/80"
+                  >
+                    {selectedServerIds.size === servers.length ? "Deselect All" : "Select All"}
+                  </button>
+                )}
+              </div>
               {servers.length === 0 ? (
                 <p className="text-sm text-text-muted py-3">
                   No servers available. Add servers first.
@@ -605,7 +622,9 @@ export function StacksView() {
 
   // Load saved stacks from backend on mount
   useEffect(() => {
-    tauri.getSavedStacks().then(setSavedStacks).catch(() => {});
+    tauri.getSavedStacks().then(setSavedStacks).catch((e) => {
+      console.warn("Failed to load saved stacks:", e);
+    });
   }, []);
 
   const handleExport = async (json: string) => {
@@ -623,7 +642,9 @@ export function StacksView() {
   const handleRemoveExported = async (id: string) => {
     try {
       await tauri.deleteSavedStack(id);
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to delete saved stack:", e);
+    }
     setSavedStacks((prev) => prev.filter((s) => s.id !== id));
     toast.success("Stack removed from list");
   };

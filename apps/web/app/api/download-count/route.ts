@@ -9,7 +9,7 @@ interface GitHubRelease {
 export async function GET() {
   try {
     const res = await fetch(
-      "https://api.github.com/repos/nicholaschuayunzhi/conductor/releases",
+      "https://api.github.com/repos/aryabyte21/conductor/releases",
       {
         headers: {
           Accept: "application/vnd.github.v3+json",
@@ -22,6 +22,7 @@ export async function GET() {
     );
 
     if (!res.ok) {
+      console.warn(`GitHub API error: ${res.status} ${res.statusText}`);
       return NextResponse.json(
         { count: 0, formatted: "0" },
         { status: 200 }
@@ -49,7 +50,8 @@ export async function GET() {
         },
       }
     );
-  } catch {
+  } catch (e) {
+    console.error("Failed to fetch download count:", e);
     return NextResponse.json(
       { count: 0, formatted: "0" },
       { status: 200 }

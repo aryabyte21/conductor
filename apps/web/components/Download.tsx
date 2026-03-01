@@ -64,7 +64,7 @@ export function Download() {
         {/* Download button */}
         <div className="mt-10">
           <a
-            href="https://github.com/nicholaschuayunzhi/conductor/releases/latest"
+            href="https://github.com/aryabyte21/conductor/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary inline-flex text-lg"
@@ -73,7 +73,7 @@ export function Download() {
             Download for macOS
           </a>
           <p className="mt-3 text-xs text-[#71717A]">
-            v0.1.0 &middot; macOS 13+ &middot; Apple Silicon &amp; Intel &middot;
+            v1.0.0 &middot; macOS 10.15+ &middot; Apple Silicon &amp; Intel &middot;
             Free &amp; open source
           </p>
         </div>

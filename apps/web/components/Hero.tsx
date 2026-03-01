@@ -210,7 +210,7 @@ export function Hero() {
             Download for macOS
           </a>
           <a
-            href="https://github.com/nicholaschuayunzhi/conductor"
+            href="https://github.com/aryabyte21/conductor"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary text-base"
@@ -224,7 +224,7 @@ export function Hero() {
         <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-[#71717A]">
           <span className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#7C3AED]" />
-            8 clients supported
+            9 clients supported
           </span>
           <span className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#7C3AED]" />

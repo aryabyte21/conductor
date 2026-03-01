@@ -265,8 +265,8 @@ function ServerDetailPanel({
     try {
       const status = await tauri.checkAuthStatus(server.id);
       setAuthStatus(status);
-    } catch {
-      // Silently fail — auth check is best-effort
+    } catch (e) {
+      console.warn("Auth status check failed:", e);
     }
     setAuthChecking(false);
   }, [server.id, isUrlServer]);

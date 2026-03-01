@@ -69,7 +69,7 @@ export function Nav() {
         {/* Right actions (desktop) */}
         <div className="hidden items-center gap-3 md:flex">
           <a
-            href="https://github.com/nicholaschuayunzhi/conductor"
+            href="https://github.com/aryabyte21/conductor"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#A1A1AA] transition-colors hover:text-[#FAFAFA]"
@@ -109,7 +109,7 @@ export function Nav() {
             ))}
             <hr className="border-[#27272A]" />
             <a
-              href="https://github.com/nicholaschuayunzhi/conductor"
+              href="https://github.com/aryabyte21/conductor"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-[#A1A1AA] transition-colors hover:text-[#FAFAFA]"

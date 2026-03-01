@@ -43,6 +43,7 @@ Every AI coding tool has its own config file format for MCP servers. Add a new s
 | Zed | JSON | `~/.config/zed/settings.json` |
 | JetBrains IDEs | XML | `~/Library/Application Support/JetBrains/*/options/mcp.xml` |
 | OpenAI Codex CLI | TOML | `~/.codex/config.toml` |
+| Antigravity | JSON | `.antigravity/config.json` |
 
 ## Features
 
@@ -149,7 +150,7 @@ conductor/
 │   │       │   ├── commands/    # Tauri IPC command handlers
 │   │       │   ├── config/      # Config read/write, serializers, normalizers
 │   │       │   ├── oauth/       # OAuth flow with local callback server
-│   │       │   └── watcher.rs   # File system watcher
+│   │       │   └── watcher/     # File system watcher
 │   │       └── Cargo.toml
 │   └── web/              # Next.js landing page
 ├── packages/

@@ -22,7 +22,9 @@ export function useAutoSync() {
     const loadSettings = () => {
       tauri.getSettings().then((s) => {
         settingsRef.current = s;
-      }).catch(() => {});
+      }).catch((e) => {
+        console.warn("Failed to load settings for auto-sync:", e);
+      });
     };
 
     loadSettings();

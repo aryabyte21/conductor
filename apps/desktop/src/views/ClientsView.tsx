@@ -9,11 +9,14 @@ import {
   XCircle,
   MinusCircle,
   Loader2,
+  Info,
+  ArrowRight,
 } from "lucide-react";
 import { cn, formatRelativeTime, truncatePath } from "@/lib/utils";
 import { useClientStore } from "@/stores/clientStore";
 import { useConfigStore } from "@/stores/configStore";
 import { useSyncStore } from "@/stores/syncStore";
+import { useUIStore } from "@/stores/uiStore";
 import { ClientLogo } from "@/components/ClientLogo";
 import { toast } from "sonner";
 import type { ClientDetection } from "@conductor/types";
@@ -239,14 +242,22 @@ export function ClientsView() {
   const loading = useClientStore((s) => s.loading);
   const detectClients = useClientStore((s) => s.detectClients);
   const syncToAllClients = useClientStore((s) => s.syncToAllClients);
+  const servers = useConfigStore((s) => s.servers);
+  const setActiveView = useUIStore((s) => s.setActiveView);
   const [syncingAll, setSyncingAll] = useState(false);
 
   const detectedCount = clients.filter((c) => c.detected).length;
+  const detectedClients = clients.filter((c) => c.detected);
+  const outOfSyncCount = detectedClients.filter((c) => getSyncStatus(c) === "out-of-sync").length;
+  const neverSynced = detectedClients.length > 0 && detectedClients.every((c) => !c.lastSyncedAt);
 
   const handleSyncAll = async () => {
     setSyncingAll(true);
     await syncToAllClients();
     setSyncingAll(false);
+    toast.success("Sync complete", {
+      description: `Synced to ${detectedCount} client${detectedCount !== 1 ? "s" : ""}.`,
+    });
   };
 
   return (
@@ -284,6 +295,11 @@ export function ClientsView() {
                 <Upload className="w-4 h-4" />
               )}
               Sync All
+              {outOfSyncCount > 0 && !syncingAll && (
+                <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/20 px-1.5 text-[10px] font-bold">
+                  {outOfSyncCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -291,6 +307,40 @@ export function ClientsView() {
 
       {/* Client grid */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
+        {/* First-install guidance banner */}
+        {neverSynced && servers.length === 0 && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-accent/30 bg-accent/5 p-4">
+            <Info className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-text-primary">Welcome to Conductor</p>
+              <p className="text-xs text-text-secondary mt-1">
+                Get started by importing servers from your existing AI clients, or add new servers manually.
+                Once you have servers configured, sync them to all your clients with one click.
+              </p>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => setActiveView("servers")}
+                  className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent/90"
+                >
+                  Add Servers
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Out-of-sync banner */}
+        {outOfSyncCount > 0 && !neverSynced && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-warning/30 bg-warning/5 p-3">
+            <AlertCircle className="w-4 h-4 text-warning shrink-0" />
+            <p className="text-xs text-text-secondary flex-1">
+              {outOfSyncCount} client{outOfSyncCount !== 1 ? "s are" : " is"} out of sync.
+              Click <strong>Sync All</strong> to push your latest server config.
+            </p>
+          </div>
+        )}
+
         {loading && clients.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((i) => (

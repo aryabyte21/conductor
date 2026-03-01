@@ -131,8 +131,8 @@ export function ActivityView() {
     try {
       const data = await tauri.getActivity();
       setEntries(data);
-    } catch {
-      // silently fail
+    } catch (e) {
+      console.warn("Failed to fetch activity:", e);
     }
   }, []);
 
@@ -144,8 +144,8 @@ export function ActivityView() {
     try {
       await tauri.clearActivity();
       setEntries([]);
-    } catch {
-      // silently fail
+    } catch (e) {
+      console.warn("Failed to clear activity:", e);
     }
   }, []);
 

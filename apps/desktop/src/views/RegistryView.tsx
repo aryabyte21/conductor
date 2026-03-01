@@ -311,7 +311,9 @@ export function RegistryView() {
   useEffect(() => {
     tauri.getPopularServers()
       .then(setPopular)
-      .catch(() => {})
+      .catch((e) => {
+        console.warn("Failed to load popular servers:", e);
+      })
       .finally(() => setLoadingPopular(false));
   }, []);
 

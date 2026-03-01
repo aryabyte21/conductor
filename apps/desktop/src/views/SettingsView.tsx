@@ -187,13 +187,18 @@ export function SettingsView() {
     tauri.getSettings().then((s) => {
       setSettings(s);
       setLoaded(true);
-    }).catch(() => setLoaded(true));
+    }).catch((e) => {
+      console.warn("Failed to load settings:", e);
+      setLoaded(true);
+    });
   }, []);
 
   const updateSetting = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings((prev) => {
       const next = { ...prev, [key]: value };
-      tauri.saveSettings(next).catch(() => {});
+      tauri.saveSettings(next).catch((e) => {
+        console.warn("Failed to save settings:", e);
+      });
       return next;
     });
   }, []);
