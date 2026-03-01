@@ -3,9 +3,22 @@
 import { useState, useEffect } from "react";
 import { Apple, Mail, Loader2, Download as DownloadIcon } from "lucide-react";
 
+interface ReleaseInfo {
+  version: string | null;
+  arm64: string | null;
+  x64: string | null;
+  release: string | null;
+}
+
 export function Download() {
   const [email, setEmail] = useState("");
   const [downloadCount, setDownloadCount] = useState<string | null>(null);
+  const [release, setRelease] = useState<ReleaseInfo>({
+    version: null,
+    arm64: null,
+    x64: null,
+    release: null,
+  });
 
   useEffect(() => {
     fetch("/api/download-count")
@@ -14,7 +27,14 @@ export function Download() {
         if (data.count > 0) setDownloadCount(data.formatted);
       })
       .catch(() => {});
+
+    fetch("/api/latest-release")
+      .then((r) => r.json())
+      .then((data: ReleaseInfo) => setRelease(data))
+      .catch(() => {});
   }, []);
+
+  const fallbackUrl = "https://github.com/aryabyte21/conductor/releases/latest";
   const [subscribeStatus, setSubscribeStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -76,29 +96,26 @@ export function Download() {
         {/* Download buttons */}
         <div className="mt-10">
           <a
-            href="https://github.com/aryabyte21/conductor/releases/latest"
-            target="_blank"
-            rel="noopener noreferrer"
+            href={release.arm64 ?? fallbackUrl}
             className="btn-primary inline-flex text-lg"
           >
             <Apple className="h-5 w-5" />
             Download for macOS
+            {release.version && (
+              <span className="ml-1 text-sm opacity-70">{release.version}</span>
+            )}
           </a>
 
           <div className="mt-4 flex items-center justify-center gap-3 text-sm">
             <a
-              href="https://github.com/aryabyte21/conductor/releases/latest"
-              target="_blank"
-              rel="noopener noreferrer"
+              href={release.arm64 ?? fallbackUrl}
               className="text-[#A1A1AA] underline underline-offset-2 transition-colors hover:text-[#FAFAFA]"
             >
               Apple Silicon (M1+)
             </a>
             <span className="text-[#3F3F46]">&middot;</span>
             <a
-              href="https://github.com/aryabyte21/conductor/releases/latest"
-              target="_blank"
-              rel="noopener noreferrer"
+              href={release.x64 ?? fallbackUrl}
               className="text-[#A1A1AA] underline underline-offset-2 transition-colors hover:text-[#FAFAFA]"
             >
               Intel

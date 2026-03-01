@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, X, Github, Download } from "lucide-react";
 
 const navLinks = [
@@ -12,6 +12,18 @@ const navLinks = [
 
 export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [dmgUrl, setDmgUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/latest-release")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.arm64) setDmgUrl(data.arm64);
+      })
+      .catch(() => {});
+  }, []);
+
+  const downloadHref = dmgUrl ?? "#download";
 
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-[#27272A]/50 glass">
@@ -77,7 +89,7 @@ export function Nav() {
             <Github className="h-4 w-4" />
             GitHub
           </a>
-          <a href="#download" className="btn-primary !px-4 !py-2 text-sm">
+          <a href={downloadHref} className="btn-primary !px-4 !py-2 text-sm">
             <Download className="h-4 w-4" />
             Download
           </a>
@@ -118,7 +130,7 @@ export function Nav() {
               GitHub
             </a>
             <a
-              href="#download"
+              href={downloadHref}
               onClick={() => setMobileOpen(false)}
               className="btn-primary w-full text-center text-sm"
             >

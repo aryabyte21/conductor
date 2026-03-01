@@ -3,6 +3,21 @@
 import { useState, useEffect } from "react";
 import { ArrowRight, Apple, Shield, Globe, Scale, Download } from "lucide-react";
 
+function useLatestRelease() {
+  const [dmgUrl, setDmgUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/latest-release")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.arm64) setDmgUrl(data.arm64);
+      })
+      .catch(() => {});
+  }, []);
+
+  return dmgUrl;
+}
+
 function DownloadStat() {
   const [count, setCount] = useState<string | null>(null);
 
@@ -176,6 +191,9 @@ function AppScreenshot() {
 }
 
 export function Hero() {
+  const dmgUrl = useLatestRelease();
+  const downloadHref = dmgUrl ?? "#download";
+
   return (
     <section className="relative pt-16">
       {/* Gradient mesh background */}
@@ -228,7 +246,7 @@ export function Hero() {
 
         {/* CTAs */}
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a href="#download" className="btn-primary text-base">
+          <a href={downloadHref} className="btn-primary text-base">
             <Apple className="h-5 w-5" />
             Download for macOS
           </a>
