@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Plus,
   Download,
@@ -10,8 +10,12 @@ import {
   Link,
   Loader2,
   Tag,
+  Clock,
+  Search,
+  Server,
+  Share2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { useConfigStore } from "@/stores/configStore";
 import { ServerLogo } from "@/components/ServerLogo";
 import * as tauri from "@/lib/tauri";
@@ -498,9 +502,11 @@ function ImportStackDialog({
 
 function ExportedStackCard({
   json,
+  createdAt,
   onDelete,
 }: {
   json: string;
+  createdAt?: string;
   onDelete: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -546,8 +552,11 @@ function ExportedStackCard({
   return (
     <div className="flex flex-col p-4 rounded-xl border border-border bg-surface-2 hover:border-text-muted/30 transition-colors">
       <div className="flex items-start gap-3 mb-3">
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 shrink-0">
+        <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 shrink-0">
           <Layers className="w-5 h-5 text-accent" />
+          <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-accent text-[9px] font-bold text-white">
+            {stack.servers.length}
+          </span>
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-text-primary truncate">
@@ -556,6 +565,12 @@ function ExportedStackCard({
           {stack.description && (
             <p className="text-xs text-text-secondary line-clamp-2 mt-0.5">
               {stack.description}
+            </p>
+          )}
+          {createdAt && (
+            <p className="flex items-center gap-1 text-[11px] text-text-muted mt-1">
+              <Clock className="w-3 h-3" />
+              {formatRelativeTime(createdAt)}
             </p>
           )}
         </div>
@@ -570,7 +585,7 @@ function ExportedStackCard({
             command={s.command}
             url={s.url}
             iconUrl={s.iconUrl}
-            size={24}
+            size={28}
           />
         ))}
         {stack.servers.length > 6 && (
@@ -578,9 +593,6 @@ function ExportedStackCard({
             +{stack.servers.length - 6}
           </span>
         )}
-        <span className="text-xs text-text-muted ml-auto">
-          {stack.servers.length} server{stack.servers.length !== 1 && "s"}
-        </span>
       </div>
 
       {/* Tags */}
@@ -638,6 +650,7 @@ export function StacksView() {
   const [savedStacks, setSavedStacks] = useState<tauri.SavedStack[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Load saved stacks from backend on mount
   useEffect(() => {
@@ -645,6 +658,25 @@ export function StacksView() {
       console.warn("Failed to load saved stacks:", e);
     });
   }, []);
+
+  // Filter stacks by search
+  const filteredStacks = useMemo(() => {
+    if (!searchQuery.trim()) return savedStacks;
+    const q = searchQuery.toLowerCase();
+    return savedStacks.filter((s) => {
+      try {
+        const stack: McpStack = JSON.parse(s.json);
+        return (
+          stack.name.toLowerCase().includes(q) ||
+          (stack.description?.toLowerCase().includes(q)) ||
+          stack.tags?.some((t) => t.toLowerCase().includes(q)) ||
+          stack.servers?.some((sv) => sv.name.toLowerCase().includes(q))
+        );
+      } catch {
+        return false;
+      }
+    });
+  }, [savedStacks, searchQuery]);
 
   const handleExport = async (json: string) => {
     try {
@@ -702,10 +734,31 @@ export function StacksView() {
 
       {/* Stack list */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
+        {/* Search filter - only when >3 stacks */}
+        {savedStacks.length > 3 && (
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search stacks..."
+                className="w-full h-9 pl-9 pr-3 rounded-lg bg-surface-3 border border-border text-sm text-text-primary
+                  placeholder:text-text-muted outline-none focus:ring-1 focus:ring-accent/50"
+              />
+            </div>
+          </div>
+        )}
+
         {savedStacks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-20 h-20 rounded-2xl bg-surface-3 flex items-center justify-center mb-6">
+            <div className="relative w-20 h-20 rounded-2xl bg-surface-3 flex items-center justify-center mb-6">
               <Layers className="w-10 h-10 text-text-muted" />
+              {/* Decorative mini-icons */}
+              <Server className="absolute -top-2 -right-3 w-4 h-4 text-text-muted/40 rotate-12" />
+              <Share2 className="absolute -bottom-2 -left-3 w-4 h-4 text-text-muted/40 -rotate-12" />
+              <Copy className="absolute -top-1 -left-4 w-3.5 h-3.5 text-text-muted/30 rotate-6" />
             </div>
             <h3 className="text-lg font-semibold text-text-primary mb-2">
               Create your first MCP Stack
@@ -734,12 +787,20 @@ export function StacksView() {
               </button>
             </div>
           </div>
+        ) : filteredStacks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Search className="w-8 h-8 text-text-muted mb-3" />
+            <p className="text-sm text-text-muted">
+              No stacks matching &ldquo;{searchQuery}&rdquo;
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {savedStacks.map((saved) => (
+            {filteredStacks.map((saved) => (
               <ExportedStackCard
                 key={saved.id}
                 json={saved.json}
+                createdAt={saved.createdAt}
                 onDelete={() => handleRemoveExported(saved.id)}
               />
             ))}

@@ -9,9 +9,14 @@ import {
   FileJson,
   ExternalLink,
   RotateCcw,
+  Download,
+  Loader2,
+  ArrowUpCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as tauri from "@/lib/tauri";
+import { open } from "@tauri-apps/plugin-shell";
 import { toast } from "sonner";
 import type { AppSettings } from "@conductor/types";
 
@@ -183,6 +188,10 @@ export function SettingsView() {
   const [loaded, setLoaded] = useState(false);
   const [dangerDialog, setDangerDialog] = useState<null | "clear" | "reset">(null);
 
+  // Update check state
+  const [updateInfo, setUpdateInfo] = useState<tauri.UpdateInfo | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+
   useEffect(() => {
     tauri.getSettings().then((s) => {
       setSettings(s);
@@ -191,7 +200,26 @@ export function SettingsView() {
       console.warn("Failed to load settings:", e);
       setLoaded(true);
     });
+
+    // Check for updates on mount
+    tauri.checkForUpdates().then(setUpdateInfo).catch(() => {});
   }, []);
+
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true);
+    try {
+      const info = await tauri.checkForUpdates();
+      setUpdateInfo(info);
+      if (!info.updateAvailable) {
+        toast.success("You're on the latest version");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error("Failed to check for updates", { description: message });
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
 
   const updateSetting = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings((prev) => {
@@ -281,6 +309,58 @@ export function SettingsView() {
             >
               <Toggle checked={settings.startMinimized} onChange={(v) => updateSetting("startMinimized", v)} />
             </SettingRow>
+          </div>
+        </Section>
+
+        {/* Updates */}
+        <Section title="Updates" icon={ArrowUpCircle}>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-text-primary">
+                  Current version
+                </p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {updateInfo ? `v${updateInfo.currentVersion}` : "Loading..."}
+                </p>
+              </div>
+              {updateInfo?.updateAvailable ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/15 text-accent text-xs font-medium">
+                  <ArrowUpCircle className="w-3.5 h-3.5" />
+                  v{updateInfo.latestVersion} available
+                </span>
+              ) : updateInfo ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/15 text-success text-xs font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Up to date
+                </span>
+              ) : null}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCheckUpdate}
+                disabled={checkingUpdate}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-border text-sm font-medium
+                  text-text-secondary hover:bg-surface-3 transition-colors disabled:opacity-50"
+              >
+                {checkingUpdate ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Check for updates
+              </button>
+              {updateInfo?.updateAvailable && (
+                <button
+                  onClick={() => open(updateInfo.downloadUrl)}
+                  className="flex items-center gap-2 h-9 px-4 rounded-lg bg-accent text-white text-sm font-medium
+                    hover:bg-accent/90 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Download v{updateInfo.latestVersion}
+                </button>
+              )}
+            </div>
           </div>
         </Section>
 

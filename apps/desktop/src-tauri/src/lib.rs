@@ -23,6 +23,7 @@ pub fn run() {
             commands::detection::read_master_config,
             commands::detection::save_master_config,
             commands::detection::get_app_version,
+            commands::detection::check_for_updates,
             // servers
             commands::servers::add_server,
             commands::servers::update_server,

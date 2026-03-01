@@ -10,15 +10,15 @@ const clients: {
   invert?: boolean;
 }[] = [
   {
-    name: "Claude Desktop",
+    name: "Claude",
     logo: "/claude-color.svg",
     color: "#D97757",
-    description: "Anthropic's desktop client",
+    description: "Desktop & Claude Code",
   },
   {
     name: "Cursor",
-    logo: "/APP_ICON_2D_LIGHT-cursor.png",
-    color: "#000000",
+    logo: "/CUBE_2D_DARK.svg",
+    color: "#71717A",
     description: "AI-powered code editor",
   },
   {
@@ -30,7 +30,7 @@ const clients: {
   {
     name: "Windsurf",
     logo: "/Windsurf-black-symbol.svg",
-    color: "#000000",
+    color: "#10B981",
     description: "Codeium's AI IDE",
     invert: true,
   },
@@ -39,12 +39,6 @@ const clients: {
     logo: "/zed-logo.svg",
     color: "#084CCF",
     description: "High-performance editor",
-  },
-  {
-    name: "Claude Code",
-    logo: "/claude-color.svg",
-    color: "#D97757",
-    description: "Anthropic's CLI tool",
   },
   {
     name: "JetBrains",
@@ -97,7 +91,7 @@ export function Clients() {
               <div
                 className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl transition-transform group-hover:scale-110"
                 style={{
-                  backgroundColor: client.color + "12",
+                  backgroundColor: client.color + "20",
                 }}
               >
                 <img

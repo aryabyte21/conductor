@@ -173,7 +173,7 @@ function ServerCard({
         command={server.command}
         url={server.url}
         iconUrl={server.iconUrl}
-        size={36}
+        size={44}
       />
 
       <div className="flex-1 min-w-0">
@@ -426,7 +426,7 @@ function ServerDetailPanel({
                 command={server.command}
                 url={server.url}
                 iconUrl={server.iconUrl}
-                size={48}
+                size={56}
               />
               <div>
                 <h3 className="text-base font-semibold text-text-primary">

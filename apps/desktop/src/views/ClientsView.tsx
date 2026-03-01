@@ -146,7 +146,7 @@ function ClientCard({ client }: { client: ClientDetection }) {
       )}
     >
       {/* Header */}
-      <div className="flex items-center gap-4 mb-3">
+      <div className="flex items-center gap-3 mb-3">
         <ClientLogo clientId={client.clientId} displayName={client.displayName} size={64} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -177,18 +177,18 @@ function ClientCard({ client }: { client: ClientDetection }) {
 
       {/* Server chips */}
       {client.serverNames && client.serverNames.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="flex flex-wrap gap-1.5 mb-4 min-h-[28px]">
           {client.serverNames.slice(0, 5).map((name, i) => (
             <span
               key={i}
-              className="inline-flex h-5 px-2 rounded bg-surface-3 text-[10px] text-text-muted font-medium"
+              className="inline-flex items-center h-5 px-2 rounded bg-surface-3 text-[10px] text-text-muted font-medium"
             >
               {name}
             </span>
           ))}
           {client.serverNames.length > 5 && (
             <span
-              className="inline-flex h-5 px-2 rounded bg-surface-3 text-[10px] text-text-muted font-medium cursor-default"
+              className="inline-flex items-center h-5 px-2 rounded bg-surface-3 text-[10px] text-text-muted font-medium cursor-default"
               title={client.serverNames.slice(5).join("\n")}
             >
               +{client.serverNames.length - 5} more
@@ -197,50 +197,41 @@ function ClientCard({ client }: { client: ClientDetection }) {
         </div>
       )}
 
-      {/* Divider */}
-      <div className="border-t border-border my-1" />
-
       {/* Actions */}
-      <div className="flex gap-2 mt-auto pt-2">
+      <div className="flex gap-2 mt-auto pt-3">
         <button
           onClick={handleImport}
           disabled={!client.detected || importing}
           className={cn(
-            "flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg text-xs font-medium transition-colors",
+            "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-medium transition-colors",
             client.detected
               ? "border border-border text-text-secondary hover:bg-surface-3"
               : "border border-border/50 text-text-muted cursor-not-allowed"
           )}
         >
-          <span className="flex items-center gap-1.5">
-            {importing ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <ArrowDownToLine className="w-3.5 h-3.5" />
-            )}
-            Pull
-          </span>
-          <span className="text-[9px] text-text-muted font-normal">Read client config</span>
+          {importing ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <ArrowDownToLine className="w-3.5 h-3.5" />
+          )}
+          Pull
         </button>
         <button
           onClick={handleSync}
           disabled={!client.detected || syncing}
           className={cn(
-            "flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg text-xs font-medium transition-colors",
+            "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-medium transition-colors",
             client.detected
               ? "bg-accent text-white hover:bg-accent/90"
               : "bg-surface-3 text-text-muted cursor-not-allowed"
           )}
         >
-          <span className="flex items-center gap-1.5">
-            {syncing ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <ArrowUpFromLine className="w-3.5 h-3.5" />
-            )}
-            Push
-          </span>
-          <span className="text-[9px] text-white/60 font-normal">Write servers here</span>
+          {syncing ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <ArrowUpFromLine className="w-3.5 h-3.5" />
+          )}
+          Push
         </button>
       </div>
     </div>

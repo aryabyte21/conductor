@@ -52,6 +52,19 @@ export async function getAppVersion(): Promise<string> {
   return invoke<string>("get_app_version");
 }
 
+export interface UpdateInfo {
+  currentVersion: string;
+  latestVersion: string;
+  downloadUrl: string;
+  releaseNotes: string;
+  publishedAt: string;
+  updateAvailable: boolean;
+}
+
+export async function checkForUpdates(): Promise<UpdateInfo> {
+  return invoke<UpdateInfo>("check_for_updates");
+}
+
 // ── Client detection & sync ─────────────────────────────────────────
 
 export async function detectClients(): Promise<ClientDetection[]> {

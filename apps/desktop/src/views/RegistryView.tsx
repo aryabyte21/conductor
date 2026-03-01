@@ -297,7 +297,7 @@ function RegistryCard({
         <ServerLogo
           name={server.qualifiedName || server.displayName}
           iconUrl={server.iconUrl}
-          size={40}
+          size={48}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
@@ -371,7 +371,7 @@ function RegistrySkeleton() {
           className="flex flex-col p-4 rounded-xl border border-border bg-surface-2 animate-pulse"
         >
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-surface-3 shrink-0" />
+            <div className="w-12 h-12 rounded-xl bg-surface-3 shrink-0" />
             <div className="flex-1 space-y-1.5">
               <div className="h-4 w-2/3 rounded bg-surface-3" />
               <div className="h-3 w-1/2 rounded bg-surface-3" />

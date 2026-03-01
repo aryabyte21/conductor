@@ -1,19 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import { Apple, Mail, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Apple, Mail, Loader2, Download as DownloadIcon } from "lucide-react";
 
 export function Download() {
   const [email, setEmail] = useState("");
+  const [downloadCount, setDownloadCount] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/download-count")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.count > 0) setDownloadCount(data.formatted);
+      })
+      .catch(() => {});
+  }, []);
   const [subscribeStatus, setSubscribeStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
+
+  const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSubscribe(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
 
     setSubscribeStatus("loading");
+    setErrorMsg("");
     try {
       const res = await fetch("/api/subscribe", {
         method: "POST",
@@ -24,11 +37,19 @@ export function Download() {
       if (res.ok) {
         setSubscribeStatus("success");
         setEmail("");
+      } else if (res.status === 503) {
+        setSubscribeStatus("error");
+        setErrorMsg("Subscriptions aren't set up yet. Star us on GitHub to stay updated!");
+      } else if (res.status === 429) {
+        setSubscribeStatus("error");
+        setErrorMsg("Too many requests. Please try again later.");
       } else {
         setSubscribeStatus("error");
+        setErrorMsg("Something went wrong. Please try again.");
       }
     } catch {
       setSubscribeStatus("error");
+      setErrorMsg("Something went wrong. Please try again.");
     }
   }
 
@@ -86,6 +107,15 @@ export function Download() {
 
           <p className="mt-3 text-sm text-[#71717A]">
             macOS 10.15+ &middot; Free &amp; open source
+            {downloadCount && (
+              <>
+                {" "}&middot;{" "}
+                <span className="inline-flex items-center gap-1">
+                  <DownloadIcon className="inline h-3 w-3" />
+                  {downloadCount} downloads
+                </span>
+              </>
+            )}
           </p>
 
           {/* macOS unsigned note */}
@@ -135,7 +165,7 @@ export function Download() {
           )}
           {subscribeStatus === "error" && (
             <p className="mt-3 text-base text-[#EF4444]">
-              Something went wrong. Please try again.
+              {errorMsg}
             </p>
           )}
           <p className="mt-3 text-sm text-[#71717A]">

@@ -7,6 +7,7 @@ import {
   Shield,
   Share2,
   HardDrive,
+  Search,
 } from "lucide-react";
 
 const features = [
@@ -18,7 +19,7 @@ const features = [
       "Conductor stores all your MCP server configurations in one unified database. Edit once, and every connected client gets the update. No more hunting through scattered JSON files across your filesystem.",
     highlights: [
       "Unified server registry",
-      "Per-client toggle control",
+      "Per-server enable/disable",
       "Visual config editor",
       "JSON import/export",
     ],
@@ -62,14 +63,14 @@ const features = [
   },
   {
     icon: KeyRound,
-    label: "Killer Feature",
+    label: "Security",
     title: "Auth Once, Use Everywhere",
     description:
-      "Configure API keys and authentication tokens once in Conductor. They're securely stored and automatically injected into every client's config at sync time. Rotate a key in one place, and it updates everywhere instantly.",
+      "Configure API keys and authentication tokens once in Conductor. They're stored in your OS keychain and automatically injected into every client's config at sync time. Update a key in one place, and it propagates everywhere.",
     highlights: [
-      "Secure credential storage",
+      "OS keychain storage",
       "Auto-injection at sync",
-      "One-click key rotation",
+      "OAuth flow support",
       "Environment variable support",
     ],
     visual: (
@@ -80,9 +81,9 @@ const features = [
         </div>
         <div className="space-y-3">
           {[
-            { label: "GITHUB_TOKEN", status: "Configured", rotated: "2 days ago" },
-            { label: "OPENAI_API_KEY", status: "Configured", rotated: "1 week ago" },
-            { label: "BRAVE_API_KEY", status: "Configured", rotated: "3 days ago" },
+            { label: "GITHUB_TOKEN", status: "Keychain" },
+            { label: "OPENAI_API_KEY", status: "Keychain" },
+            { label: "BRAVE_API_KEY", status: "Keychain" },
           ].map((cred) => (
             <div
               key={cred.label}
@@ -96,21 +97,17 @@ const features = [
                   {cred.status}
                 </span>
               </div>
-              <div className="mt-1.5 flex items-center justify-between">
+              <div className="mt-1.5">
                 <span className="font-mono text-xs text-[#71717A]">
                   ••••••••••••••••
-                </span>
-                <span className="text-[10px] text-[#71717A]">
-                  Rotated {cred.rotated}
                 </span>
               </div>
             </div>
           ))}
         </div>
-        {/* Flow visualization */}
         <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-[#71717A]">
           <span className="rounded bg-[#7C3AED]/10 px-2 py-1 text-[#7C3AED]">
-            Vault
+            Keychain
           </span>
           <ArrowRight className="h-3 w-3" />
           <span className="rounded bg-[#111113] px-2 py-1">Auto-inject</span>
@@ -123,16 +120,60 @@ const features = [
     ),
   },
   {
+    icon: Search,
+    label: "Discovery",
+    title: "Server Registry",
+    description:
+      "Browse and install from 7,300+ MCP servers on the Smithery Registry, right from Conductor. Search by name, category, or use case — then install with one click.",
+    highlights: [
+      "7,300+ servers to browse",
+      "Search and filter",
+      "One-click install",
+      "Auto-configure on add",
+    ],
+    visual: (
+      <div className="rounded-xl border border-[#27272A] bg-[#0A0A0B] p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Search className="h-4 w-4 text-[#7C3AED]" />
+          <span className="text-xs font-semibold text-[#FAFAFA]">Smithery Registry</span>
+        </div>
+        <div className="mb-3 rounded-lg bg-[#111113] px-3 py-2">
+          <span className="text-xs text-[#71717A]">Search 7,300+ servers...</span>
+        </div>
+        <div className="space-y-2">
+          {[
+            { name: "github", desc: "GitHub API access", installs: "12k" },
+            { name: "postgres", desc: "PostgreSQL queries", installs: "8.2k" },
+            { name: "filesystem", desc: "Local file access", installs: "15k" },
+          ].map((server) => (
+            <div
+              key={server.name}
+              className="flex items-center justify-between rounded-lg bg-[#111113] px-3 py-2"
+            >
+              <div>
+                <span className="text-xs font-medium text-[#FAFAFA]">{server.name}</span>
+                <span className="ml-2 text-[10px] text-[#71717A]">{server.desc}</span>
+              </div>
+              <button className="rounded-md bg-[#7C3AED]/10 px-2 py-0.5 text-[10px] font-semibold text-[#7C3AED]">
+                Install
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+  {
     icon: Layers,
-    label: "Viral Feature",
+    label: "Sharing",
     title: "MCP Stacks",
     description:
-      "Bundle your MCP servers into shareable Stacks. Share a \"Web Dev Stack\" with your team or publish a \"Data Science Stack\" for the community. One-click install for anyone using Conductor.",
+      "Bundle your MCP servers into shareable Stacks. Export as JSON or share via link. Import a stack to instantly set up a curated set of servers.",
     highlights: [
       "Shareable server bundles",
-      "One-click install",
-      "Community marketplace",
-      "Team collaboration",
+      "Import via JSON or URL",
+      "Share links",
+      "Secrets auto-stripped on export",
     ],
     visual: (
       <div className="rounded-xl border border-[#27272A] bg-[#0A0A0B] p-5">
@@ -144,15 +185,11 @@ const features = [
           {[
             {
               name: "Web Dev Stack",
-              author: "@sarah",
               servers: ["filesystem", "github-mcp", "postgres-mcp"],
-              installs: "2.4k",
             },
             {
               name: "Data Science Stack",
-              author: "@mike",
               servers: ["jupyter-mcp", "pandas-mcp", "viz-server"],
-              installs: "1.8k",
             },
           ].map((stack) => (
             <div
@@ -160,16 +197,11 @@ const features = [
               className="rounded-lg bg-[#111113] p-3"
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-[#FAFAFA]">
-                    {stack.name}
-                  </span>
-                  <span className="ml-2 text-[10px] text-[#71717A]">
-                    by {stack.author}
-                  </span>
-                </div>
+                <span className="text-xs font-semibold text-[#FAFAFA]">
+                  {stack.name}
+                </span>
                 <button className="rounded-md bg-[#7C3AED]/10 px-2.5 py-1 text-[10px] font-semibold text-[#7C3AED]">
-                  Install
+                  Import
                 </button>
               </div>
               <div className="mt-2 flex flex-wrap gap-1">
@@ -182,9 +214,6 @@ const features = [
                   </span>
                 ))}
               </div>
-              <div className="mt-2 text-[10px] text-[#71717A]">
-                {stack.installs} installs
-              </div>
             </div>
           ))}
         </div>
@@ -194,20 +223,20 @@ const features = [
   {
     icon: RefreshCw,
     label: "Reliability",
-    title: "Auto-Sync + Backup",
+    title: "Auto-Sync + Activity Log",
     description:
-      "Conductor watches for changes and auto-syncs to keep every client up to date. Full version history lets you roll back any change. Your configs are always backed up and never lost.",
+      "Conductor auto-syncs your config to all clients whenever you make a change. A detailed activity log tracks every sync, import, and server change so you always know what happened.",
     highlights: [
       "Real-time file watching",
-      "Automatic sync on change",
-      "Full version history",
-      "One-click rollback",
+      "Auto-sync on config changes",
+      "Detailed activity log",
+      "Automatic config backups",
     ],
     visual: (
       <div className="rounded-xl border border-[#27272A] bg-[#0A0A0B] p-5">
         <div className="mb-4 flex items-center gap-2">
           <HardDrive className="h-4 w-4 text-[#7C3AED]" />
-          <span className="text-xs font-semibold text-[#FAFAFA]">Sync History</span>
+          <span className="text-xs font-semibold text-[#FAFAFA]">Activity Log</span>
         </div>
         <div className="space-y-2">
           {[
@@ -215,7 +244,7 @@ const features = [
             { action: "Added brave-search server", time: "15 min ago", type: "add" },
             { action: "Updated github-mcp auth", time: "1 hour ago", type: "update" },
             { action: "Synced to all clients", time: "1 hour ago", type: "sync" },
-            { action: "Backup created", time: "2 hours ago", type: "backup" },
+            { action: "Imported from Cursor", time: "2 hours ago", type: "import" },
           ].map((entry, i) => (
             <div
               key={i}
@@ -230,7 +259,7 @@ const features = [
                         ? "bg-[#3B82F6]"
                         : entry.type === "update"
                           ? "bg-[#F59E0B]"
-                          : "bg-[#71717A]"
+                          : "bg-[#8B5CF6]"
                   }`}
                 />
                 <span className="text-xs text-[#FAFAFA]">{entry.action}</span>
@@ -251,7 +280,6 @@ export function Features() {
       className="relative border-t border-[#27272A]/50 py-24 sm:py-32"
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* Section header */}
         <div className="text-center">
           <p className="text-base font-semibold uppercase tracking-wider text-[#7C3AED]">
             Features
@@ -264,14 +292,12 @@ export function Features() {
           </p>
         </div>
 
-        {/* Feature blocks (alternating layout) */}
         <div className="mt-16 space-y-24">
           {features.map((feature, index) => (
             <div
               key={feature.title}
               className="grid items-center gap-12 md:grid-cols-2"
             >
-              {/* Text side */}
               <div className={index % 2 === 1 ? "md:order-2" : ""}>
                 <div className="mb-2 flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7C3AED]/10">
@@ -302,7 +328,6 @@ export function Features() {
                 </ul>
               </div>
 
-              {/* Visual side */}
               <div className={index % 2 === 1 ? "md:order-1" : ""}>
                 {feature.visual}
               </div>

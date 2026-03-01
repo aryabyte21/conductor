@@ -1,6 +1,29 @@
 "use client";
 
-import { ArrowRight, Apple, Shield, Globe, Scale } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowRight, Apple, Shield, Globe, Scale, Download } from "lucide-react";
+
+function DownloadStat() {
+  const [count, setCount] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/download-count")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.count > 0) setCount(data.formatted);
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!count) return null;
+
+  return (
+    <span className="flex items-center gap-2">
+      <Download className="h-3.5 w-3.5" />
+      {count} downloads
+    </span>
+  );
+}
 
 const clients = [
   { name: "Claude Desktop", icon: "C", color: "#D97757", status: "Synced", servers: "4 servers" },
@@ -222,6 +245,7 @@ export function Hero() {
 
         {/* Stats */}
         <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-base text-[#71717A]">
+          <DownloadStat />
           <span className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#7C3AED]" />
             9 clients supported

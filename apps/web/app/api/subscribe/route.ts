@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     if (!process.env.RESEND_API_KEY || !process.env.RESEND_AUDIENCE_ID) {
       return NextResponse.json(
-        { error: "Subscription is not yet available" },
+        { error: "not_configured" },
         { status: 503 }
       );
     }

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   Server,
   Monitor,
@@ -8,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore, type ActiveView } from "@/stores/uiStore";
+import * as tauri from "@/lib/tauri";
 
 interface NavItem {
   id: ActiveView;
@@ -27,6 +29,18 @@ const navItems: NavItem[] = [
 export function Sidebar() {
   const activeView = useUIStore((s) => s.activeView);
   const setActiveView = useUIStore((s) => s.setActiveView);
+  const [version, setVersion] = useState("");
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  useEffect(() => {
+    // Load current version
+    tauri.getAppVersion().then((v) => setVersion(v)).catch(() => {});
+
+    // Silently check for updates
+    tauri.checkForUpdates().then((info) => {
+      setUpdateAvailable(info.updateAvailable);
+    }).catch(() => {});
+  }, []);
 
   return (
     <aside className="w-[220px] h-full flex flex-col bg-surface-1 border-r border-border shrink-0">
@@ -91,7 +105,25 @@ export function Sidebar() {
 
       {/* Version footer */}
       <div className="px-5 py-4">
-        <span className="text-[11px] text-text-muted">v1.0.0</span>
+        <button
+          onClick={() => {
+            if (updateAvailable) setActiveView("settings");
+          }}
+          className={cn(
+            "flex items-center gap-1.5 text-[11px]",
+            updateAvailable
+              ? "text-accent hover:text-accent/80 cursor-pointer"
+              : "text-text-muted cursor-default"
+          )}
+        >
+          {version ? `v${version}` : ""}
+          {updateAvailable && (
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent" />
+            </span>
+          )}
+        </button>
       </div>
     </aside>
   );
