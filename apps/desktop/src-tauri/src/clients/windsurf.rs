@@ -1,4 +1,4 @@
-use crate::clients::ClientAdapter;
+use crate::clients::{app_installed, ClientAdapter};
 use crate::config::McpServerConfig;
 use crate::config::{backup, normalizer, serializer};
 use anyhow::Result;
@@ -46,7 +46,7 @@ impl ClientAdapter for WindsurfAdapter {
                 return true;
             }
         }
-        std::path::Path::new("/Applications/Windsurf.app").exists()
+        app_installed("Windsurf.app", "windsurf")
     }
 
     fn config_path(&self) -> Option<PathBuf> {

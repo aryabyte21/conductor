@@ -381,7 +381,8 @@ export function SettingsView() {
                 <select
                   value={String(settings.syncDelay)}
                   onChange={(e) => updateSetting("syncDelay", Number(e.target.value))}
-                  className="h-8 px-2 rounded-lg bg-surface-3 border border-border text-sm text-text-primary
+                  className="h-8 px-3 pr-8 w-36 rounded-lg appearance-none cursor-pointer
+                    bg-surface-1 border border-border text-sm text-text-primary
                     outline-none focus:ring-1 focus:ring-accent/50"
                 >
                   <option value="0">Immediate</option>
@@ -405,7 +406,8 @@ export function SettingsView() {
               <select
                 value={String(settings.backupRetention)}
                 onChange={(e) => updateSetting("backupRetention", Number(e.target.value))}
-                className="h-8 px-2 rounded-lg bg-surface-3 border border-border text-sm text-text-primary
+                className="h-8 px-3 pr-8 w-36 rounded-lg appearance-none cursor-pointer
+                  bg-surface-1 border border-border text-sm text-text-primary
                   outline-none focus:ring-1 focus:ring-accent/50"
               >
                 <option value="7">7 days</option>

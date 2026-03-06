@@ -1,4 +1,4 @@
-use crate::clients::ClientAdapter;
+use crate::clients::{app_installed, ClientAdapter};
 use crate::config::McpServerConfig;
 use crate::config::{backup, normalizer, serializer};
 use anyhow::Result;
@@ -8,10 +8,8 @@ pub struct ClaudeDesktopAdapter;
 
 impl ClaudeDesktopAdapter {
     fn get_config_path() -> Option<PathBuf> {
-        let home = dirs::home_dir()?;
-        let path = home
-            .join("Library")
-            .join("Application Support")
+        let config_dir = dirs::config_dir()?;
+        let path = config_dir
             .join("Claude")
             .join("claude_desktop_config.json");
         Some(path)
@@ -37,8 +35,7 @@ impl ClientAdapter for ClaudeDesktopAdapter {
                 return true;
             }
         }
-        // Also check if the app is installed
-        std::path::Path::new("/Applications/Claude.app").exists()
+        app_installed("Claude.app", "claude-desktop")
     }
 
     fn config_path(&self) -> Option<PathBuf> {

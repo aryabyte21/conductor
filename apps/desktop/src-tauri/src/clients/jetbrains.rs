@@ -1,4 +1,4 @@
-use crate::clients::ClientAdapter;
+use crate::clients::{app_installed, ClientAdapter};
 use crate::config::McpServerConfig;
 use crate::config::{backup, normalizer, serializer};
 use anyhow::Result;
@@ -10,11 +10,8 @@ impl JetBrainsAdapter {
     /// JetBrains stores MCP config in the most recent IDE's config directory.
     /// We search for common JetBrains IDEs on macOS.
     fn get_config_path() -> Option<PathBuf> {
-        let home = dirs::home_dir()?;
-        let app_support = home
-            .join("Library")
-            .join("Application Support")
-            .join("JetBrains");
+        let config_dir = dirs::config_dir()?;
+        let app_support = config_dir.join("JetBrains");
 
         if !app_support.exists() {
             return None;
@@ -74,17 +71,17 @@ impl ClientAdapter for JetBrainsAdapter {
             return path.exists();
         }
         // Check if any JetBrains IDE is installed
-        let apps = [
-            "/Applications/IntelliJ IDEA.app",
-            "/Applications/WebStorm.app",
-            "/Applications/PyCharm.app",
-            "/Applications/GoLand.app",
-            "/Applications/RustRover.app",
-            "/Applications/CLion.app",
-            "/Applications/Rider.app",
-            "/Applications/PhpStorm.app",
+        let ides: &[(&str, &str)] = &[
+            ("IntelliJ IDEA.app", "idea"),
+            ("WebStorm.app", "webstorm"),
+            ("PyCharm.app", "pycharm"),
+            ("GoLand.app", "goland"),
+            ("RustRover.app", "rustrover"),
+            ("CLion.app", "clion"),
+            ("Rider.app", "rider"),
+            ("PhpStorm.app", "phpstorm"),
         ];
-        apps.iter().any(|app| std::path::Path::new(app).exists())
+        ides.iter().any(|(mac, bin)| app_installed(mac, bin))
     }
 
     fn config_path(&self) -> Option<PathBuf> {

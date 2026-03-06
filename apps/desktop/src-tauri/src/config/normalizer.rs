@@ -2,6 +2,21 @@ use crate::config::{McpServerConfig, TransportType};
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 
+/// Parse JSONC (JSON with Comments) content into a serde_json Value.
+///
+/// Uses the `json5` crate which properly handles:
+/// - `//` single-line comments
+/// - `/* */` block comments  
+/// - Trailing commas
+///
+/// VS Code, Antigravity, and Zed all write JSONC format.
+pub fn parse_jsonc(content: &str) -> Result<serde_json::Value> {
+    if content.trim().is_empty() {
+        return Ok(serde_json::json!({}));
+    }
+    json5::from_str(content).context("Failed to parse JSONC config")
+}
+
 /// Parse a client's raw config file content and extract MCP server configurations.
 pub fn parse_client_config(client_id: &str, raw: &str) -> Result<Vec<McpServerConfig>> {
     match client_id {
@@ -20,8 +35,7 @@ pub fn parse_client_config(client_id: &str, raw: &str) -> Result<Vec<McpServerCo
 /// Parse standard JSON format with top-level "mcpServers" key.
 /// Used by Claude Desktop, Cursor, Windsurf, Claude Code.
 fn parse_mcp_servers_json(raw: &str, source: &str) -> Result<Vec<McpServerConfig>> {
-    let value: serde_json::Value =
-        serde_json::from_str(raw).context("Failed to parse JSON config")?;
+    let value: serde_json::Value = parse_jsonc(raw).context("Failed to parse JSON config")?;
 
     let servers_obj = value
         .get("mcpServers")
@@ -40,8 +54,7 @@ fn parse_mcp_servers_json(raw: &str, source: &str) -> Result<Vec<McpServerConfig
 
 /// Parse VS Code settings.json with nested "mcp" -> "servers" key.
 fn parse_vscode_config(raw: &str) -> Result<Vec<McpServerConfig>> {
-    let value: serde_json::Value =
-        serde_json::from_str(raw).context("Failed to parse VS Code JSON config")?;
+    let value: serde_json::Value = parse_jsonc(raw).context("Failed to parse VS Code JSON config")?;
 
     // VS Code stores MCP servers under "mcp" -> "servers"
     let servers_obj = value
@@ -62,8 +75,7 @@ fn parse_vscode_config(raw: &str) -> Result<Vec<McpServerConfig>> {
 
 /// Parse VS Code mcp.json with top-level "servers" key.
 fn parse_vscode_mcp_json(raw: &str) -> Result<Vec<McpServerConfig>> {
-    let value: serde_json::Value =
-        serde_json::from_str(raw).context("Failed to parse VS Code mcp.json config")?;
+    let value: serde_json::Value = parse_jsonc(raw).context("Failed to parse VS Code mcp.json config")?;
 
     let servers_obj = value
         .get("servers")
@@ -83,8 +95,7 @@ fn parse_vscode_mcp_json(raw: &str) -> Result<Vec<McpServerConfig>> {
 /// Parse Zed editor settings.json with "context_servers" key.
 /// Zed wraps the command in a nested object structure.
 fn parse_zed_config(raw: &str) -> Result<Vec<McpServerConfig>> {
-    let value: serde_json::Value =
-        serde_json::from_str(raw).context("Failed to parse Zed JSON config")?;
+    let value: serde_json::Value = parse_jsonc(raw).context("Failed to parse Zed JSON config")?;
 
     let servers_obj = value
         .get("context_servers")

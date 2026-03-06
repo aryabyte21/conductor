@@ -1,4 +1,5 @@
 use crate::config::{McpServerConfig, TransportType};
+use crate::config::normalizer::parse_jsonc;
 use anyhow::{Context, Result};
 
 /// Resolve the full path to `npx` once per process. Falls back to `"npx"`.
@@ -33,6 +34,7 @@ pub fn serialize_to_client_format(
         }
         "vscode" => serialize_vscode(servers, existing_content, previously_synced_names),
         "vscode-mcp" => serialize_vscode_mcp(servers, existing_content, previously_synced_names),
+        "antigravity" => serialize_antigravity(servers, existing_content, previously_synced_names),
         "zed" => serialize_zed(servers, existing_content, previously_synced_names),
         "jetbrains" => serialize_jetbrains(servers),
         "codex" => serialize_codex(servers, existing_content, previously_synced_names),
@@ -50,7 +52,7 @@ fn serialize_standard_json(
     previously_synced_names: &[String],
 ) -> Result<String> {
     let mut root: serde_json::Value = match existing_content {
-        Some(content) => serde_json::from_str(content).map_err(|e| {
+        Some(content) => parse_jsonc(content).map_err(|e| {
             anyhow::anyhow!(
                 "Client config has invalid JSON ({}). Fix it manually or delete and re-sync.",
                 e
@@ -93,7 +95,7 @@ fn serialize_standard_json(
 /// VS Code format: preserves all non-mcp settings, merges into "mcp" -> "servers".
 fn serialize_vscode(servers: &[McpServerConfig], existing_content: Option<&str>, previously_synced_names: &[String]) -> Result<String> {
     let mut root: serde_json::Value = match existing_content {
-        Some(content) => serde_json::from_str(content).map_err(|e| {
+        Some(content) => parse_jsonc(content).map_err(|e| {
             anyhow::anyhow!(
                 "VS Code settings has invalid JSON ({}). Fix it manually or delete and re-sync.",
                 e
@@ -145,7 +147,7 @@ fn serialize_vscode_mcp(
     previously_synced_names: &[String],
 ) -> Result<String> {
     let mut root: serde_json::Value = match existing_content {
-        Some(content) => serde_json::from_str(content).map_err(|e| {
+        Some(content) => parse_jsonc(content).map_err(|e| {
             anyhow::anyhow!(
                 "VS Code mcp.json has invalid JSON ({}). Fix it manually or delete and re-sync.",
                 e
@@ -180,10 +182,55 @@ fn serialize_vscode_mcp(
     serde_json::to_string_pretty(&root).context("Failed to serialize VS Code mcp.json")
 }
 
+
+/// Antigravity format: identical to VS Code mcp.json (top-level "servers"),
+/// but explicitly supports streamable-http natively so we pass `use_proxy_for_auth = false`
+/// and allow the servers_to_json_object builder to emit `"transport": "streamable-http"`.
+fn serialize_antigravity(
+    servers: &[McpServerConfig],
+    existing_content: Option<&str>,
+    previously_synced_names: &[String],
+) -> Result<String> {
+    let mut root: serde_json::Value = match existing_content {
+        Some(content) => parse_jsonc(content).map_err(|e| {
+            anyhow::anyhow!(
+                "Antigravity mcp_config.json has invalid JSON ({}). Fix it manually or delete and re-sync.",
+                e
+            )
+        })?,
+        None => serde_json::json!({}),
+    };
+
+    let conductor_servers = servers_to_json_object(servers, true);
+    let conductor_names_lower: std::collections::HashSet<String> =
+        servers.iter().map(|s| s.name.to_lowercase()).collect();
+    let prev_synced_lower: std::collections::HashSet<String> =
+        previously_synced_names.iter().map(|s| s.to_lowercase()).collect();
+
+    let mut merged = serde_json::Map::new();
+    if let Some(existing) = root.get("mcpServers").and_then(|v| v.as_object()) {
+        for (name, value) in existing {
+            let name_lower = name.to_lowercase();
+            let is_conductor = conductor_names_lower.contains(&name_lower);
+            let was_conductor = prev_synced_lower.contains(&name_lower);
+            if !is_conductor && !was_conductor {
+                merged.insert(name.clone(), value.clone());
+            }
+        }
+    }
+    for (name, value) in conductor_servers {
+        merged.insert(name, value);
+    }
+
+    root["mcpServers"] = serde_json::Value::Object(merged);
+
+    serde_json::to_string_pretty(&root).context("Failed to serialize Antigravity mcp_config.json")
+}
+
 /// Zed format: flat command structure. Merges with existing context_servers.
 fn serialize_zed(servers: &[McpServerConfig], existing_content: Option<&str>, previously_synced_names: &[String]) -> Result<String> {
     let mut root: serde_json::Value = match existing_content {
-        Some(content) => serde_json::from_str(content).map_err(|e| {
+        Some(content) => parse_jsonc(content).map_err(|e| {
             anyhow::anyhow!(
                 "Zed settings has invalid JSON ({}). Fix it manually or delete and re-sync.",
                 e
@@ -472,6 +519,7 @@ fn serialize_codex(servers: &[McpServerConfig], existing_content: Option<&str>, 
 /// URL servers with an `OAUTH_TOKEN` are wrapped as stdio via `mcp-remote`
 /// so that the auth header is passed through the proxy subprocess.  URL servers
 /// *without* an OAuth token are still emitted as plain URLs.
+/// 
 fn servers_to_json_object(
     servers: &[McpServerConfig],
     use_proxy_for_auth: bool,
@@ -491,20 +539,42 @@ fn servers_to_json_object(
                 }
                 // `env` is only meaningful for stdio servers (subprocess env vars).
                 if !server.env.is_empty() {
-                    obj.insert("env".to_string(), serde_json::json!(server.env));
+                    let mut env_map = serde_json::Map::new();
+                    for (k, v) in &server.env {
+                        let final_str = if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
+                            // If `server.env` values are accidentally stored as JSON string literals
+                            // e.g., `"my-key"`, strip the quotes so we don't double-quote them.
+                            v[1..v.len()-1].to_string()
+                        } else {
+                            v.to_string()
+                        };
+                        env_map.insert(k.clone(), serde_json::Value::String(final_str));
+                    }
+                    obj.insert("env".to_string(), serde_json::Value::Object(env_map));
                 }
             }
             TransportType::Sse | TransportType::StreamableHttp => {
-                let has_oauth = server
-                    .env
-                    .get("OAUTH_TOKEN")
+                let token_key = server.env.keys().find(|k| {
+                    k.ends_with("API_KEY") || k.ends_with("TOKEN")
+                }).map(|s| s.as_str());
+
+                let has_auth = token_key
+                    .and_then(|k| server.env.get(k))
                     .map(|t| !t.trim().is_empty())
                     .unwrap_or(false);
 
-                if use_proxy_for_auth && has_oauth {
+                if use_proxy_for_auth && has_auth {
                     // Client doesn't support native headers — wrap via mcp-remote.
                     let url = server.url.as_deref().unwrap_or_default();
-                    let token = server.env.get("OAUTH_TOKEN").unwrap();
+                    let k = token_key.unwrap();
+                    let token = server.env.get(k).unwrap();
+                    
+                    let header_str = if k.ends_with("OAUTH_TOKEN") {
+                        format!("Authorization: Bearer {}", token)
+                    } else {
+                        format!("{}: {}", k, token)
+                    };
+
                     obj.insert(
                         "command".to_string(),
                         serde_json::json!(find_npx_path()),
@@ -516,28 +586,43 @@ fn servers_to_json_object(
                             "mcp-remote",
                             url,
                             "--header",
-                            format!("Authorization:Bearer {}", token),
+                            header_str,
                         ]),
                     );
                 } else {
                     // Client supports native headers (or no auth needed).
                     if let Some(ref url) = server.url {
                         obj.insert("url".to_string(), serde_json::json!(url));
+                        if server.transport == TransportType::StreamableHttp {
+                            obj.insert(
+                                "transport".to_string(),
+                                serde_json::json!("streamable-http"),
+                            );
+                        }
                     }
-                    if server.transport == TransportType::StreamableHttp {
-                        obj.insert(
-                            "transport".to_string(),
-                            serde_json::json!("streamable-http"),
-                        );
-                    }
+                    
                     // Promote OAUTH_TOKEN to Authorization header for clients
                     // that support it (Claude Code, VS Code).
-                    if has_oauth {
-                        let token = server.env.get("OAUTH_TOKEN").unwrap();
+                    if has_auth {
+                        let k = token_key.unwrap();
+                        let token = server.env.get(k).unwrap();
+                        
+                        let auth_val = if k.ends_with("OAUTH_TOKEN") {
+                            format!("Bearer {}", token)
+                        } else {
+                            token.to_string()
+                        };
+                        
+                        let header_key = if k.ends_with("API_KEY") {
+                            k.to_string()
+                        } else {
+                            "Authorization".to_string()
+                        };
+
                         obj.insert(
                             "headers".to_string(),
                             serde_json::json!({
-                                "Authorization": format!("Bearer {}", token)
+                                header_key: auth_val
                             }),
                         );
                     }
