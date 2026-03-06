@@ -1,6 +1,6 @@
 use crate::config;
 
-/// Open the Conductor config folder in Finder.
+/// Open the Conductor config folder in the system file manager.
 #[tauri::command]
 pub async fn open_config_folder() -> Result<(), String> {
     let path = config::master_config_path().map_err(|e| e.to_string())?;

@@ -5,8 +5,9 @@ use std::sync::Mutex;
 static CLIENT_ICON_CACHE: std::sync::LazyLock<Mutex<HashMap<String, Option<String>>>> =
     std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// Load a client app's icon from its macOS .app bundle.
+/// Load a client app's icon from its OS-native app bundle.
 /// Returns base64-encoded PNG data URI or None.
+/// On Linux, returns None — all known clients have bundled SVG logos in the frontend.
 #[tauri::command]
 pub async fn get_client_icon(client_id: String) -> Result<Option<String>, String> {
     // Check cache
@@ -16,7 +17,7 @@ pub async fn get_client_icon(client_id: String) -> Result<Option<String>, String
         }
     }
 
-    let result = load_client_icon_from_macos(&client_id);
+    let result = load_client_icon(&client_id);
 
     // Cache the result
     if let Ok(mut cache) = CLIENT_ICON_CACHE.lock() {
@@ -26,7 +27,18 @@ pub async fn get_client_icon(client_id: String) -> Result<Option<String>, String
     Ok(result)
 }
 
-fn load_client_icon_from_macos(client_id: &str) -> Option<String> {
+/// Platform-specific icon loading dispatch.
+fn load_client_icon(client_id: &str) -> Option<String> {
+    if cfg!(target_os = "macos") {
+        load_client_icon_macos(client_id)
+    } else {
+        // On Linux, all known clients have bundled SVG logos in the frontend.
+        // No OS-level icon extraction needed.
+        None
+    }
+}
+
+fn load_client_icon_macos(client_id: &str) -> Option<String> {
     let app_paths: Vec<&str> = match client_id {
         "claude-desktop" => vec!["/Applications/Claude.app"],
         "cursor" => vec!["/Applications/Cursor.app"],

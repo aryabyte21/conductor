@@ -91,3 +91,26 @@ pub fn get_all_adapters() -> Vec<Box<dyn ClientAdapter>> {
 pub fn get_adapter(client_id: &str) -> Option<Box<dyn ClientAdapter>> {
     get_all_adapters().into_iter().find(|a| a.id() == client_id)
 }
+
+/// Check if a binary is available on the system PATH.
+pub fn which_exists(cmd: &str) -> bool {
+    std::process::Command::new("which")
+        .arg(cmd)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+/// Check if an application is installed, using platform-appropriate detection.
+///
+/// - `macos_app_name`: The macOS `.app` bundle name (e.g., "Claude.app")
+/// - `binary_name`: The binary name to check on PATH (used on Linux, or as fallback)
+pub fn app_installed(macos_app_name: &str, binary_name: &str) -> bool {
+    if cfg!(target_os = "macos") {
+        let app_path = format!("/Applications/{}", macos_app_name);
+        if std::path::Path::new(&app_path).exists() {
+            return true;
+        }
+    }
+    which_exists(binary_name)
+}

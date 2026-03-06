@@ -1,4 +1,4 @@
-use crate::clients::ClientAdapter;
+use crate::clients::{app_installed, ClientAdapter};
 use crate::config::McpServerConfig;
 use crate::config::{backup, normalizer, serializer};
 use anyhow::Result;
@@ -8,11 +8,9 @@ pub struct VSCodeAdapter;
 
 impl VSCodeAdapter {
     fn get_config_path() -> Option<PathBuf> {
-        let home = dirs::home_dir()?;
+        let config_dir = dirs::config_dir()?;
         // VS Code uses a dedicated mcp.json file (not settings.json)
-        let mcp_json = home
-            .join("Library")
-            .join("Application Support")
+        let mcp_json = config_dir
             .join("Code")
             .join("User")
             .join("mcp.json");
@@ -20,9 +18,7 @@ impl VSCodeAdapter {
             return Some(mcp_json);
         }
         // Fallback to legacy settings.json location
-        let settings = home
-            .join("Library")
-            .join("Application Support")
+        let settings = config_dir
             .join("Code")
             .join("User")
             .join("settings.json");
@@ -60,7 +56,7 @@ impl ClientAdapter for VSCodeAdapter {
                 return true;
             }
         }
-        std::path::Path::new("/Applications/Visual Studio Code.app").exists()
+        app_installed("Visual Studio Code.app", "code")
     }
 
     fn config_path(&self) -> Option<PathBuf> {

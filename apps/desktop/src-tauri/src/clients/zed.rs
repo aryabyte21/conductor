@@ -1,4 +1,4 @@
-use crate::clients::ClientAdapter;
+use crate::clients::{app_installed, ClientAdapter};
 use crate::config::McpServerConfig;
 use crate::config::{backup, normalizer, serializer};
 use anyhow::Result;
@@ -32,7 +32,7 @@ impl ClientAdapter for ZedAdapter {
                 return true;
             }
         }
-        std::path::Path::new("/Applications/Zed.app").exists()
+        app_installed("Zed.app", "zed")
     }
 
     fn config_path(&self) -> Option<PathBuf> {
