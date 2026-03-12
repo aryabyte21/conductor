@@ -9,18 +9,13 @@ pub struct ClaudeCodeAdapter;
 impl ClaudeCodeAdapter {
     fn get_config_path() -> Option<PathBuf> {
         let home = dirs::home_dir()?;
-        // Claude Code stores MCP servers in ~/.claude.json (mcpServers key)
-        let primary = home.join(".claude.json");
-        if primary.exists() {
-            return Some(primary);
-        }
-        // Fallback: ~/.claude/settings.json (used for general Claude Code settings)
-        let fallback = home.join(".claude").join("settings.json");
-        if fallback.exists() {
-            return Some(fallback);
-        }
-        // Default to primary path
-        Some(primary)
+        // Claude Code's canonical user config is ~/.claude/settings.json.
+        // The ~/.claude.json file is Claude Code's internal metadata store
+        // (startup count, tips, etc.) which also supports mcpServers but is
+        // NOT the intended location for user-managed server configs.
+        // Writing to ~/.claude.json while settings.json also has mcpServers
+        // causes duplicate server connections and startup failures.
+        Some(home.join(".claude").join("settings.json"))
     }
 }
 
