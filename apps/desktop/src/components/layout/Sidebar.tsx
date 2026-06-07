@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { platform } from "@tauri-apps/plugin-os";
 import {
   Server,
   Monitor,
@@ -31,10 +32,18 @@ export function Sidebar() {
   const setActiveView = useUIStore((s) => s.setActiveView);
   const [version, setVersion] = useState("");
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [isMacos, setIsMacos] = useState(false);
 
   useEffect(() => {
     // Load current version
     tauri.getAppVersion().then((v) => setVersion(v)).catch(() => {});
+
+    // Detect platform for conditional UI
+    try {
+      setIsMacos(platform() === "macos");
+    } catch {
+      // Fallback: assume not macOS
+    }
 
     // Silently check for updates
     tauri.checkForUpdates().then((info) => {
@@ -44,8 +53,8 @@ export function Sidebar() {
 
   return (
     <aside className="w-[220px] h-full flex flex-col bg-surface-1 border-r border-border shrink-0">
-      {/* macOS traffic-light drag region */}
-      <div className="h-8 shrink-0" />
+      {/* Spacer for macOS traffic-light window controls */}
+      {isMacos && <div className="h-8 shrink-0" />}
 
       {/* Logo area */}
       <div className="flex items-center gap-2.5 px-5 py-3 mb-2">

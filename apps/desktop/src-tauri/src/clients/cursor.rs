@@ -1,4 +1,4 @@
-use crate::clients::ClientAdapter;
+use crate::clients::{app_installed, ClientAdapter};
 use crate::config::McpServerConfig;
 use crate::config::{backup, normalizer, serializer};
 use anyhow::Result;
@@ -32,7 +32,7 @@ impl ClientAdapter for CursorAdapter {
                 return true;
             }
         }
-        std::path::Path::new("/Applications/Cursor.app").exists()
+        app_installed("Cursor.app", "cursor")
     }
 
     fn config_path(&self) -> Option<PathBuf> {
@@ -69,8 +69,12 @@ impl ClientAdapter for CursorAdapter {
             }
         };
 
-        let output =
-            serializer::serialize_to_client_format("cursor", servers, current_content.as_deref(), previously_synced_names)?;
+        let output = serializer::serialize_to_client_format(
+            "cursor",
+            servers,
+            current_content.as_deref(),
+            previously_synced_names,
+        )?;
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;

@@ -1,4 +1,4 @@
-use crate::clients::ClientAdapter;
+use crate::clients::{which_exists, ClientAdapter};
 use crate::config::McpServerConfig;
 use crate::config::{backup, normalizer, serializer};
 use anyhow::Result;
@@ -90,12 +90,4 @@ impl ClientAdapter for ClaudeCodeAdapter {
         backup::atomic_write(&path, &output)?;
         Ok(())
     }
-}
-
-fn which_exists(cmd: &str) -> bool {
-    std::process::Command::new("which")
-        .arg(cmd)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
 }

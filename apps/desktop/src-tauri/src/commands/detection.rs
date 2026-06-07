@@ -143,19 +143,22 @@ pub async fn check_for_updates() -> Result<UpdateInfo, String> {
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    let tag = release["tag_name"]
-        .as_str()
-        .unwrap_or("")
-        .to_string();
+    let tag = release["tag_name"].as_str().unwrap_or("").to_string();
     let latest_version = tag.strip_prefix('v').unwrap_or(&tag).to_string();
 
-    // Find .dmg asset download URL
+    // Find the platform-appropriate download asset
+    let asset_extension = if cfg!(target_os = "macos") {
+        ".dmg"
+    } else {
+        ".AppImage"
+    };
+
     let download_url = release["assets"]
         .as_array()
         .and_then(|assets| {
             assets.iter().find_map(|a| {
                 let name = a["name"].as_str().unwrap_or("");
-                if name.ends_with(".dmg") {
+                if name.ends_with(asset_extension) {
                     a["browser_download_url"].as_str().map(|s| s.to_string())
                 } else {
                     None

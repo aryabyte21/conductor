@@ -1,3 +1,4 @@
+use crate::config::normalizer::parse_jsonc;
 use crate::config::{McpServerConfig, TransportType};
 use anyhow::{Context, Result};
 
@@ -28,11 +29,15 @@ pub fn serialize_to_client_format(
     previously_synced_names: &[String],
 ) -> Result<String> {
     match client_id {
-        "claude-desktop" | "cursor" | "windsurf" | "claude-code" => {
-            serialize_standard_json(client_id, servers, existing_content, previously_synced_names)
-        }
+        "claude-desktop" | "cursor" | "windsurf" | "claude-code" => serialize_standard_json(
+            client_id,
+            servers,
+            existing_content,
+            previously_synced_names,
+        ),
         "vscode" => serialize_vscode(servers, existing_content, previously_synced_names),
         "vscode-mcp" => serialize_vscode_mcp(servers, existing_content, previously_synced_names),
+        "antigravity" => serialize_antigravity(servers, existing_content, previously_synced_names),
         "zed" => serialize_zed(servers, existing_content, previously_synced_names),
         "jetbrains" => serialize_jetbrains(servers),
         "codex" => serialize_codex(servers, existing_content, previously_synced_names),
@@ -50,7 +55,7 @@ fn serialize_standard_json(
     previously_synced_names: &[String],
 ) -> Result<String> {
     let mut root: serde_json::Value = match existing_content {
-        Some(content) => serde_json::from_str(content).map_err(|e| {
+        Some(content) => parse_jsonc(content).map_err(|e| {
             anyhow::anyhow!(
                 "Client config has invalid JSON ({}). Fix it manually or delete and re-sync.",
                 e
@@ -64,8 +69,10 @@ fn serialize_standard_json(
     let conductor_servers = servers_to_json_object(servers, use_proxy);
     let conductor_names_lower: std::collections::HashSet<String> =
         servers.iter().map(|s| s.name.to_lowercase()).collect();
-    let prev_synced_lower: std::collections::HashSet<String> =
-        previously_synced_names.iter().map(|s| s.to_lowercase()).collect();
+    let prev_synced_lower: std::collections::HashSet<String> = previously_synced_names
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect();
 
     // Start with existing servers that are NOT managed by Conductor.
     // Skip orphans: servers previously synced by Conductor but no longer expected.
@@ -91,9 +98,13 @@ fn serialize_standard_json(
 }
 
 /// VS Code format: preserves all non-mcp settings, merges into "mcp" -> "servers".
-fn serialize_vscode(servers: &[McpServerConfig], existing_content: Option<&str>, previously_synced_names: &[String]) -> Result<String> {
+fn serialize_vscode(
+    servers: &[McpServerConfig],
+    existing_content: Option<&str>,
+    previously_synced_names: &[String],
+) -> Result<String> {
     let mut root: serde_json::Value = match existing_content {
-        Some(content) => serde_json::from_str(content).map_err(|e| {
+        Some(content) => parse_jsonc(content).map_err(|e| {
             anyhow::anyhow!(
                 "VS Code settings has invalid JSON ({}). Fix it manually or delete and re-sync.",
                 e
@@ -105,8 +116,10 @@ fn serialize_vscode(servers: &[McpServerConfig], existing_content: Option<&str>,
     let conductor_servers = servers_to_json_object(servers, false); // VS Code supports native headers
     let conductor_names_lower: std::collections::HashSet<String> =
         servers.iter().map(|s| s.name.to_lowercase()).collect();
-    let prev_synced_lower: std::collections::HashSet<String> =
-        previously_synced_names.iter().map(|s| s.to_lowercase()).collect();
+    let prev_synced_lower: std::collections::HashSet<String> = previously_synced_names
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect();
 
     // Ensure "mcp" object exists and preserve other mcp settings
     if root.get("mcp").is_none() {
@@ -145,7 +158,7 @@ fn serialize_vscode_mcp(
     previously_synced_names: &[String],
 ) -> Result<String> {
     let mut root: serde_json::Value = match existing_content {
-        Some(content) => serde_json::from_str(content).map_err(|e| {
+        Some(content) => parse_jsonc(content).map_err(|e| {
             anyhow::anyhow!(
                 "VS Code mcp.json has invalid JSON ({}). Fix it manually or delete and re-sync.",
                 e
@@ -157,8 +170,10 @@ fn serialize_vscode_mcp(
     let conductor_servers = servers_to_json_object(servers, false); // VS Code supports native headers
     let conductor_names_lower: std::collections::HashSet<String> =
         servers.iter().map(|s| s.name.to_lowercase()).collect();
-    let prev_synced_lower: std::collections::HashSet<String> =
-        previously_synced_names.iter().map(|s| s.to_lowercase()).collect();
+    let prev_synced_lower: std::collections::HashSet<String> = previously_synced_names
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect();
 
     let mut merged = serde_json::Map::new();
     if let Some(existing) = root.get("servers").and_then(|v| v.as_object()) {
@@ -180,10 +195,57 @@ fn serialize_vscode_mcp(
     serde_json::to_string_pretty(&root).context("Failed to serialize VS Code mcp.json")
 }
 
-/// Zed format: flat command structure. Merges with existing context_servers.
-fn serialize_zed(servers: &[McpServerConfig], existing_content: Option<&str>, previously_synced_names: &[String]) -> Result<String> {
+fn serialize_antigravity(
+    servers: &[McpServerConfig],
+    existing_content: Option<&str>,
+    previously_synced_names: &[String],
+) -> Result<String> {
     let mut root: serde_json::Value = match existing_content {
-        Some(content) => serde_json::from_str(content).map_err(|e| {
+        Some(content) => parse_jsonc(content).map_err(|e| {
+            anyhow::anyhow!(
+                "Antigravity mcp_config.json has invalid JSON ({}). Fix it manually or delete and re-sync.",
+                e
+            )
+        })?,
+        None => serde_json::json!({}),
+    };
+
+    let conductor_servers = servers_to_json_object_with_url_key(servers, false, "serverUrl");
+    let conductor_names_lower: std::collections::HashSet<String> =
+        servers.iter().map(|s| s.name.to_lowercase()).collect();
+    let prev_synced_lower: std::collections::HashSet<String> = previously_synced_names
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect();
+
+    let mut merged = serde_json::Map::new();
+    if let Some(existing) = root.get("mcpServers").and_then(|v| v.as_object()) {
+        for (name, value) in existing {
+            let name_lower = name.to_lowercase();
+            let is_conductor = conductor_names_lower.contains(&name_lower);
+            let was_conductor = prev_synced_lower.contains(&name_lower);
+            if !is_conductor && !was_conductor {
+                merged.insert(name.clone(), value.clone());
+            }
+        }
+    }
+    for (name, value) in conductor_servers {
+        merged.insert(name, value);
+    }
+
+    root["mcpServers"] = serde_json::Value::Object(merged);
+
+    serde_json::to_string_pretty(&root).context("Failed to serialize Antigravity mcp_config.json")
+}
+
+/// Zed format: flat command structure. Merges with existing context_servers.
+fn serialize_zed(
+    servers: &[McpServerConfig],
+    existing_content: Option<&str>,
+    previously_synced_names: &[String],
+) -> Result<String> {
+    let mut root: serde_json::Value = match existing_content {
+        Some(content) => parse_jsonc(content).map_err(|e| {
             anyhow::anyhow!(
                 "Zed settings has invalid JSON ({}). Fix it manually or delete and re-sync.",
                 e
@@ -194,8 +256,10 @@ fn serialize_zed(servers: &[McpServerConfig], existing_content: Option<&str>, pr
 
     let conductor_names_lower: std::collections::HashSet<String> =
         servers.iter().map(|s| s.name.to_lowercase()).collect();
-    let prev_synced_lower: std::collections::HashSet<String> =
-        previously_synced_names.iter().map(|s| s.to_lowercase()).collect();
+    let prev_synced_lower: std::collections::HashSet<String> = previously_synced_names
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect();
 
     // Start with existing truly user-added servers, skip Conductor-managed orphans
     let mut context_servers = serde_json::Map::new();
@@ -232,11 +296,7 @@ fn serialize_zed(servers: &[McpServerConfig], existing_content: Option<&str>, pr
             // URL server — Zed doesn't support the MCP-level OAuth protocol,
             // so always wrap URL servers via mcp-remote which handles auth
             // negotiation transparently.
-            let mut args = vec![
-                "-y".to_string(),
-                "mcp-remote".to_string(),
-                url.clone(),
-            ];
+            let mut args = vec!["-y".to_string(), "mcp-remote".to_string(), url.clone()];
 
             if let Some(token) = server.env.get("OAUTH_TOKEN") {
                 if !token.trim().is_empty() {
@@ -245,10 +305,7 @@ fn serialize_zed(servers: &[McpServerConfig], existing_content: Option<&str>, pr
                 }
             }
 
-            server_obj.insert(
-                "command".to_string(),
-                serde_json::json!(find_npx_path()),
-            );
+            server_obj.insert("command".to_string(), serde_json::json!(find_npx_path()));
             server_obj.insert("args".to_string(), serde_json::json!(args));
         }
 
@@ -372,7 +429,11 @@ fn serialize_jetbrains(servers: &[McpServerConfig]) -> Result<String> {
 
 /// Codex TOML format with [mcp_servers.name] named subtables.
 /// Merges Conductor servers with existing client-specific servers.
-fn serialize_codex(servers: &[McpServerConfig], existing_content: Option<&str>, previously_synced_names: &[String]) -> Result<String> {
+fn serialize_codex(
+    servers: &[McpServerConfig],
+    existing_content: Option<&str>,
+    previously_synced_names: &[String],
+) -> Result<String> {
     let mut doc: toml_edit::DocumentMut = match existing_content {
         Some(content) => content.parse().map_err(|e| {
             anyhow::anyhow!(
@@ -385,8 +446,10 @@ fn serialize_codex(servers: &[McpServerConfig], existing_content: Option<&str>, 
 
     let conductor_names_lower: std::collections::HashSet<String> =
         servers.iter().map(|s| s.name.to_lowercase()).collect();
-    let prev_synced_lower: std::collections::HashSet<String> =
-        previously_synced_names.iter().map(|s| s.to_lowercase()).collect();
+    let prev_synced_lower: std::collections::HashSet<String> = previously_synced_names
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect();
 
     // Preserve truly user-added servers, skip Conductor-managed orphans
     let mut mcp_table = toml_edit::Table::new();
@@ -476,6 +539,14 @@ fn servers_to_json_object(
     servers: &[McpServerConfig],
     use_proxy_for_auth: bool,
 ) -> serde_json::Map<String, serde_json::Value> {
+    servers_to_json_object_with_url_key(servers, use_proxy_for_auth, "url")
+}
+
+fn servers_to_json_object_with_url_key(
+    servers: &[McpServerConfig],
+    use_proxy_for_auth: bool,
+    url_key: &str,
+) -> serde_json::Map<String, serde_json::Value> {
     let mut map = serde_json::Map::new();
 
     for server in servers {
@@ -491,53 +562,82 @@ fn servers_to_json_object(
                 }
                 // `env` is only meaningful for stdio servers (subprocess env vars).
                 if !server.env.is_empty() {
-                    obj.insert("env".to_string(), serde_json::json!(server.env));
+                    let mut env_map = serde_json::Map::new();
+                    for (k, v) in &server.env {
+                        let final_str = if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
+                            // If `server.env` values are accidentally stored as JSON string literals
+                            // e.g., `"my-key"`, strip the quotes so we don't double-quote them.
+                            v[1..v.len() - 1].to_string()
+                        } else {
+                            v.to_string()
+                        };
+                        env_map.insert(k.clone(), serde_json::Value::String(final_str));
+                    }
+                    obj.insert("env".to_string(), serde_json::Value::Object(env_map));
                 }
             }
             TransportType::Sse | TransportType::StreamableHttp => {
-                let has_oauth = server
+                let token_key = server
                     .env
-                    .get("OAUTH_TOKEN")
+                    .keys()
+                    .find(|k| k.ends_with("API_KEY") || k.ends_with("TOKEN"))
+                    .map(|s| s.as_str());
+
+                let has_auth = token_key
+                    .and_then(|k| server.env.get(k))
                     .map(|t| !t.trim().is_empty())
                     .unwrap_or(false);
 
-                if use_proxy_for_auth && has_oauth {
-                    // Client doesn't support native headers — wrap via mcp-remote.
+                if use_proxy_for_auth && has_auth {
+                    // Client does not support native headers, so wrap via mcp-remote.
                     let url = server.url.as_deref().unwrap_or_default();
-                    let token = server.env.get("OAUTH_TOKEN").unwrap();
-                    obj.insert(
-                        "command".to_string(),
-                        serde_json::json!(find_npx_path()),
-                    );
+                    let k = token_key.unwrap();
+                    let token = server.env.get(k).unwrap();
+
+                    let header_str = if k.ends_with("OAUTH_TOKEN") {
+                        format!("Authorization: Bearer {}", token)
+                    } else {
+                        format!("{}: {}", k, token)
+                    };
+
+                    obj.insert("command".to_string(), serde_json::json!(find_npx_path()));
                     obj.insert(
                         "args".to_string(),
-                        serde_json::json!([
-                            "-y",
-                            "mcp-remote",
-                            url,
-                            "--header",
-                            format!("Authorization:Bearer {}", token),
-                        ]),
+                        serde_json::json!(["-y", "mcp-remote", url, "--header", header_str,]),
                     );
                 } else {
-                    // Client supports native headers (or no auth needed).
+                    // Client supports native headers or no auth is needed.
                     if let Some(ref url) = server.url {
-                        obj.insert("url".to_string(), serde_json::json!(url));
+                        obj.insert(url_key.to_string(), serde_json::json!(url));
+                        if url_key == "url" && server.transport == TransportType::StreamableHttp {
+                            obj.insert(
+                                "transport".to_string(),
+                                serde_json::json!("streamable-http"),
+                            );
+                        }
                     }
-                    if server.transport == TransportType::StreamableHttp {
-                        obj.insert(
-                            "transport".to_string(),
-                            serde_json::json!("streamable-http"),
-                        );
-                    }
-                    // Promote OAUTH_TOKEN to Authorization header for clients
-                    // that support it (Claude Code, VS Code).
-                    if has_oauth {
-                        let token = server.env.get("OAUTH_TOKEN").unwrap();
+
+                    // Promote OAUTH_TOKEN to Authorization for clients with native headers.
+                    if has_auth {
+                        let k = token_key.unwrap();
+                        let token = server.env.get(k).unwrap();
+
+                        let auth_val = if k.ends_with("OAUTH_TOKEN") {
+                            format!("Bearer {}", token)
+                        } else {
+                            token.to_string()
+                        };
+
+                        let header_key = if k.ends_with("API_KEY") {
+                            k.to_string()
+                        } else {
+                            "Authorization".to_string()
+                        };
+
                         obj.insert(
                             "headers".to_string(),
                             serde_json::json!({
-                                "Authorization": format!("Bearer {}", token)
+                                header_key: auth_val
                             }),
                         );
                     }
@@ -553,4 +653,53 @@ fn servers_to_json_object(
     }
 
     map
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn remote_server(env: HashMap<String, String>) -> McpServerConfig {
+        McpServerConfig {
+            id: "server-1".to_string(),
+            name: "context7".to_string(),
+            display_name: None,
+            description: None,
+            enabled: true,
+            transport: TransportType::StreamableHttp,
+            command: None,
+            args: Vec::new(),
+            env,
+            url: Some("https://mcp.context7.com/mcp".to_string()),
+            secret_env_keys: Vec::new(),
+            icon_url: None,
+            tags: Vec::new(),
+            source: None,
+            registry_id: None,
+            created_at: None,
+            updated_at: None,
+        }
+    }
+
+    #[test]
+    fn antigravity_remote_servers_use_server_url() {
+        let mut env = HashMap::new();
+        env.insert("CONTEXT7_API_KEY".to_string(), "ctx-key".to_string());
+        let output = serialize_to_client_format(
+            "antigravity",
+            &[remote_server(env)],
+            Some(r#"{"mcpServers":{"local":{"command":"node"}}}"#),
+            &[],
+        )
+        .unwrap();
+        let value: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let server = &value["mcpServers"]["context7"];
+
+        assert_eq!(server["serverUrl"], "https://mcp.context7.com/mcp");
+        assert!(server.get("url").is_none());
+        assert!(server.get("transport").is_none());
+        assert_eq!(server["headers"]["CONTEXT7_API_KEY"], "ctx-key");
+        assert_eq!(value["mcpServers"]["local"]["command"], "node");
+    }
 }

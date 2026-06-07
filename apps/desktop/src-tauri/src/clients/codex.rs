@@ -1,4 +1,4 @@
-use crate::clients::ClientAdapter;
+use crate::clients::{which_exists, ClientAdapter};
 use crate::config::McpServerConfig;
 use crate::config::{backup, normalizer, serializer};
 use anyhow::Result;
@@ -44,11 +44,7 @@ impl ClientAdapter for CodexAdapter {
             }
         }
         // Check if codex CLI is available
-        std::process::Command::new("which")
-            .arg("codex")
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
+        which_exists("codex")
     }
 
     fn config_path(&self) -> Option<PathBuf> {
@@ -85,8 +81,12 @@ impl ClientAdapter for CodexAdapter {
             }
         };
 
-        let output =
-            serializer::serialize_to_client_format("codex", servers, current_content.as_deref(), previously_synced_names)?;
+        let output = serializer::serialize_to_client_format(
+            "codex",
+            servers,
+            current_content.as_deref(),
+            previously_synced_names,
+        )?;
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;

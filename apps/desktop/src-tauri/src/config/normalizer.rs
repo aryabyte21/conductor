@@ -2,6 +2,13 @@ use crate::config::{McpServerConfig, TransportType};
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 
+pub fn parse_jsonc(content: &str) -> Result<serde_json::Value> {
+    if content.trim().is_empty() {
+        return Ok(serde_json::json!({}));
+    }
+    json5::from_str(content).context("Failed to parse JSONC config")
+}
+
 /// Parse a client's raw config file content and extract MCP server configurations.
 pub fn parse_client_config(client_id: &str, raw: &str) -> Result<Vec<McpServerConfig>> {
     match client_id {
@@ -20,8 +27,7 @@ pub fn parse_client_config(client_id: &str, raw: &str) -> Result<Vec<McpServerCo
 /// Parse standard JSON format with top-level "mcpServers" key.
 /// Used by Claude Desktop, Cursor, Windsurf, Claude Code.
 fn parse_mcp_servers_json(raw: &str, source: &str) -> Result<Vec<McpServerConfig>> {
-    let value: serde_json::Value =
-        serde_json::from_str(raw).context("Failed to parse JSON config")?;
+    let value: serde_json::Value = parse_jsonc(raw).context("Failed to parse JSON config")?;
 
     let servers_obj = value
         .get("mcpServers")
@@ -41,7 +47,7 @@ fn parse_mcp_servers_json(raw: &str, source: &str) -> Result<Vec<McpServerConfig
 /// Parse VS Code settings.json with nested "mcp" -> "servers" key.
 fn parse_vscode_config(raw: &str) -> Result<Vec<McpServerConfig>> {
     let value: serde_json::Value =
-        serde_json::from_str(raw).context("Failed to parse VS Code JSON config")?;
+        parse_jsonc(raw).context("Failed to parse VS Code JSON config")?;
 
     // VS Code stores MCP servers under "mcp" -> "servers"
     let servers_obj = value
@@ -63,7 +69,7 @@ fn parse_vscode_config(raw: &str) -> Result<Vec<McpServerConfig>> {
 /// Parse VS Code mcp.json with top-level "servers" key.
 fn parse_vscode_mcp_json(raw: &str) -> Result<Vec<McpServerConfig>> {
     let value: serde_json::Value =
-        serde_json::from_str(raw).context("Failed to parse VS Code mcp.json config")?;
+        parse_jsonc(raw).context("Failed to parse VS Code mcp.json config")?;
 
     let servers_obj = value
         .get("servers")
@@ -83,8 +89,7 @@ fn parse_vscode_mcp_json(raw: &str) -> Result<Vec<McpServerConfig>> {
 /// Parse Zed editor settings.json with "context_servers" key.
 /// Zed wraps the command in a nested object structure.
 fn parse_zed_config(raw: &str) -> Result<Vec<McpServerConfig>> {
-    let value: serde_json::Value =
-        serde_json::from_str(raw).context("Failed to parse Zed JSON config")?;
+    let value: serde_json::Value = parse_jsonc(raw).context("Failed to parse Zed JSON config")?;
 
     let servers_obj = value
         .get("context_servers")
@@ -443,19 +448,32 @@ fn json_value_to_server(
         })
         .unwrap_or_default();
 
-    let env = extract_env_map(value.get("env"));
+    let mut env = extract_env_map(value.get("env"));
+    for (key, val) in extract_env_map(value.get("headers")) {
+        if key == "Authorization" {
+            if let Some(token) = val.strip_prefix("Bearer ") {
+                env.insert("OAUTH_TOKEN".to_string(), token.to_string());
+            } else {
+                env.insert(key, val);
+            }
+        } else {
+            env.insert(key, val);
+        }
+    }
 
     let url = value
         .get("url")
+        .or_else(|| value.get("serverUrl"))
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
     let transport = if url.is_some() {
-        if value
-            .get("transport")
-            .and_then(|v| v.as_str())
-            .map(|s| s == "streamable-http")
-            .unwrap_or(false)
+        if value.get("serverUrl").is_some()
+            || value
+                .get("transport")
+                .and_then(|v| v.as_str())
+                .map(|s| s == "streamable-http")
+                .unwrap_or(false)
         {
             TransportType::StreamableHttp
         } else {
@@ -504,4 +522,39 @@ fn extract_env_map(env_val: Option<&serde_json::Value>) -> HashMap<String, Strin
         }
     }
     env
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_server_url_and_headers() {
+        let raw = r#"{
+            "mcpServers": {
+                "remote": {
+                    "serverUrl": "https://example.com/mcp",
+                    "headers": {
+                        "Authorization": "Bearer token-1",
+                        "CONTEXT7_API_KEY": "ctx-key"
+                    }
+                }
+            }
+        }"#;
+
+        let servers = parse_client_config("claude-desktop", raw).unwrap();
+        let server = &servers[0];
+
+        assert_eq!(server.name, "remote");
+        assert_eq!(server.url.as_deref(), Some("https://example.com/mcp"));
+        assert_eq!(server.transport, TransportType::StreamableHttp);
+        assert_eq!(
+            server.env.get("OAUTH_TOKEN").map(String::as_str),
+            Some("token-1")
+        );
+        assert_eq!(
+            server.env.get("CONTEXT7_API_KEY").map(String::as_str),
+            Some("ctx-key")
+        );
+    }
 }

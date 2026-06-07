@@ -1,4 +1,4 @@
-use crate::clients::ClientAdapter;
+use crate::clients::{app_installed, ClientAdapter};
 use crate::config::McpServerConfig;
 use crate::config::{backup, normalizer, serializer};
 use anyhow::Result;
@@ -8,24 +8,14 @@ pub struct VSCodeAdapter;
 
 impl VSCodeAdapter {
     fn get_config_path() -> Option<PathBuf> {
-        let home = dirs::home_dir()?;
+        let config_dir = dirs::config_dir()?;
         // VS Code uses a dedicated mcp.json file (not settings.json)
-        let mcp_json = home
-            .join("Library")
-            .join("Application Support")
-            .join("Code")
-            .join("User")
-            .join("mcp.json");
+        let mcp_json = config_dir.join("Code").join("User").join("mcp.json");
         if mcp_json.exists() {
             return Some(mcp_json);
         }
         // Fallback to legacy settings.json location
-        let settings = home
-            .join("Library")
-            .join("Application Support")
-            .join("Code")
-            .join("User")
-            .join("settings.json");
+        let settings = config_dir.join("Code").join("User").join("settings.json");
         if settings.exists() {
             return Some(settings);
         }
@@ -60,7 +50,7 @@ impl ClientAdapter for VSCodeAdapter {
                 return true;
             }
         }
-        std::path::Path::new("/Applications/Visual Studio Code.app").exists()
+        app_installed("Visual Studio Code.app", "code")
     }
 
     fn config_path(&self) -> Option<PathBuf> {
@@ -107,8 +97,12 @@ impl ClientAdapter for VSCodeAdapter {
             }
         };
 
-        let output =
-            serializer::serialize_to_client_format(format, servers, current_content.as_deref(), previously_synced_names)?;
+        let output = serializer::serialize_to_client_format(
+            format,
+            servers,
+            current_content.as_deref(),
+            previously_synced_names,
+        )?;
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
